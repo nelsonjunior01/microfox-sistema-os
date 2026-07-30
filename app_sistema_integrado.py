@@ -254,18 +254,35 @@ def buscar_cidades_por_uf(sigla_uf):
     except Exception:
         return ["BRASÍLIA", "SAMAMBAIA", "TAGUATINGA"] if sigla_uf == "DF" else ["Capital / Centro"]
 
-# --- CARREGAMENTO DE LOGO ---
+# --- CARREGAMENTO DE LOGO (COMPATIBILIDADE AMPLIADA) ---
+import mimetypes
+
 diretorio_atual = os.path.dirname(os.path.abspath(__file__))
-candidatos_logo = ["logo.png", "logo.jpg", "logo.jpeg", "LOGO.PNG", "LOGO.JPG"]
-caminho_logo_encontrado = next((os.path.join(diretorio_atual, img) for img in candidatos_logo if os.path.exists(os.path.join(diretorio_atual, img))), None)
+
+# Lista de extensões e variações comuns
+extensoes = ['png', 'PNG', 'jpg', 'JPG', 'jpeg', 'JPEG', 'webp']
+candidatos_logo = [f"logo.{ext}" for ext in extensoes] + [f"LOGO.{ext}" for ext in extensoes] + [f"Logo.{ext}" for ext in extensoes]
+
+caminho_logo_encontrado = None
+for nome_arq in candidatos_logo:
+    caminho_completo = os.path.join(diretorio_atual, nome_arq)
+    if os.path.exists(caminho_completo):
+        caminho_logo_encontrado = caminho_completo
+        break
 
 logo_html, logo_banner_html, watermark_html = "", "", ""
 if caminho_logo_encontrado:
+    mime_type, _ = mimetypes.guess_type(caminho_logo_encontrado)
+    if not mime_type:
+        mime_type = "image/png"
+        
     with open(caminho_logo_encontrado, "rb") as image_file:
         logo_b64 = base64.b64encode(image_file.read()).decode()
-        logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="max-height: 65px; max-width: 160px; margin-right: 15px;"/>'
-        logo_banner_html = f'<img src="data:image/png;base64,{logo_b64}" style="width: 85px; height: 85px; border-radius: 50%; object-fit: cover; border: 2px solid #ff8c00; margin-bottom: 5px;"/>'
-        watermark_html = f'<img src="data:image/png;base64,{logo_b64}" class="watermark"/>'
+        src_data = f"data:{mime_type};base64,{logo_b64}"
+        
+        logo_html = f'<img src="{src_data}" style="max-height: 65px; max-width: 160px; margin-right: 15px;"/>'
+        logo_banner_html = f'<img src="{src_data}" style="width: 85px; height: 85px; border-radius: 50%; object-fit: cover; border: 2px solid #ff8c00; margin-bottom: 5px;"/>'
+        watermark_html = f'<img src="{src_data}" class="watermark"/>'
 
 # --- TELA DE LOGIN ---
 if not st.session_state["autenticado"]:
