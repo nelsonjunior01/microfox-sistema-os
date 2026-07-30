@@ -357,11 +357,11 @@ if menu_principal == "Dashboard":
     c_t1, c_t2 = st.columns(2)
     with c_t1:
         st.markdown('<h3 class="centered-header">Últimas Ordens de Serviço</h3>', unsafe_allow_html=True)
-        df_os = pd.read_sql_query(text("SELECT numero_os AS 'Nº OS', cliente_nome AS 'Cliente', equipamento AS 'Equipamento', val_total AS 'Total (R$)' FROM ordens_servico ORDER BY id_os DESC LIMIT 5"), engine)
+        df_os = pd.read_sql_query(text('SELECT numero_os AS "Nº OS", cliente_nome AS "Cliente", equipamento AS "Equipamento", val_total AS "Total (R$)" FROM ordens_servico ORDER BY id_os DESC LIMIT 5'), engine)
         st.dataframe(df_os, use_container_width=True)
     with c_t2:
         st.markdown('<h3 class="centered-header">Últimos Orçamentos</h3>', unsafe_allow_html=True)
-        df_orc = pd.read_sql_query(text("SELECT numero_orcamento AS 'Nº Proposta', cliente_nome AS 'Cliente', val_total AS 'Total (R$)', status AS 'Status' FROM orcamentos ORDER BY id_orcamento DESC LIMIT 5"), engine)
+        df_orc = pd.read_sql_query(text("SELECT numero_orcamento AS 'Nº Proposta', cliente_nome AS "Cliente", val_total AS 'Total (R$)', status AS 'Status' FROM orcamentos ORDER BY id_orcamento DESC LIMIT 5"), engine)
         st.dataframe(df_orc, use_container_width=True)
 
 # ==============================================================================
