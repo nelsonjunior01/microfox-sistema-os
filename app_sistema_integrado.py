@@ -20,33 +20,33 @@ st.set_page_config(
 @st.cache_resource
 def iniciar_conexao_banco():
     db_url = None
-    if "DATABASE_URL" in st.secrets:
+    
+    # 1. Tenta buscar nas Secrets do Streamlit
+    if "DATABASE_URL" in st.secrets and "postgres.xxx" not in st.secrets["DATABASE_URL"]:
         db_url = st.secrets["DATABASE_URL"]
-    elif "DATABASE_URL" in os.environ:
+    elif "DATABASE_URL" in os.environ and "postgres.xxx" not in os.environ["DATABASE_URL"]:
         db_url = os.environ["DATABASE_URL"]
     
-    if db_url:
+    if db_url and "postgres.xxx" not in db_url:
         if db_url.startswith("postgres://"):
             db_url = db_url.replace("postgres://", "postgresql://", 1)
         
-        # Garante que o sslmode=require esteja presente se for Supabase
         if "supabase" in db_url and "sslmode" not in db_url:
             separador = "&" if "?" in db_url else "?"
             db_url = f"{db_url}{separador}sslmode=require"
 
         try:
             engine_pg = create_engine(db_url, pool_pre_ping=True, connect_args={"connect_timeout": 10})
-            # Teste real de conexão
             with engine_pg.connect() as conn:
                 conn.execute(text("SELECT 1"))
             return engine_pg, "postgresql", None
         except Exception as e:
-            # Se falhar o PostgreSQL, retorna o erro para exibição e usa SQLite temporário
             engine_sq = create_engine("sqlite:///sistema_os.db", connect_args={"check_same_thread": False})
             return engine_sq, "sqlite_fallback", str(e)
     else:
+        # Se a chave for inválida ou ainda contiver 'postgres.xxx', roda no SQLite local
         engine_sq = create_engine("sqlite:///sistema_os.db", connect_args={"check_same_thread": False})
-        return engine_sq, "sqlite", None
+        return engine_sq, "sqlite", "A variável DATABASE_URL nas Secrets ainda contém 'postgres.xxx' ou não foi configurada."
 
 engine, TIPO_BANCO, ERRO_CONEXAO = iniciar_conexao_banco()
 
