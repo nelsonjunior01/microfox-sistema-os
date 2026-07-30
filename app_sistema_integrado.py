@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CONEXÃO COM BANCO DE DADOS HÍBRIDO (POSTGRESQL OU SQLITE) ---
+# --- CONEXÃO COM BANCO DE DADOS HÍBRIDO E TRATAMENTO DE ERRO ---
 @st.cache_resource
 def iniciar_conexao_banco():
     db_url = None
@@ -28,13 +28,33 @@ def iniciar_conexao_banco():
     if db_url:
         if db_url.startswith("postgres://"):
             db_url = db_url.replace("postgres://", "postgresql://", 1)
-        engine = create_engine(db_url, pool_pre_ping=True)
-        return engine, "postgresql"
-    else:
-        engine = create_engine("sqlite:///sistema_os.db", connect_args={"check_same_thread": False})
-        return engine, "sqlite"
+        
+        # Garante que o sslmode=require esteja presente se for Supabase
+        if "supabase" in db_url and "sslmode" not in db_url:
+            separador = "&" if "?" in db_url else "?"
+            db_url = f"{db_url}{separador}sslmode=require"
 
-engine, TIPO_BANCO = iniciar_conexao_banco()
+        try:
+            engine_pg = create_engine(db_url, pool_pre_ping=True, connect_args={"connect_timeout": 10})
+            # Teste real de conexão
+            with engine_pg.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            return engine_pg, "postgresql", None
+        except Exception as e:
+            # Se falhar o PostgreSQL, retorna o erro para exibição e usa SQLite temporário
+            engine_sq = create_engine("sqlite:///sistema_os.db", connect_args={"check_same_thread": False})
+            return engine_sq, "sqlite_fallback", str(e)
+    else:
+        engine_sq = create_engine("sqlite:///sistema_os.db", connect_args={"check_same_thread": False})
+        return engine_sq, "sqlite", None
+
+engine, TIPO_BANCO, ERRO_CONEXAO = iniciar_conexao_banco()
+
+# Se houve erro ao tentar conectar no Postgres, exibe na tela para sabermos a causa
+if ERRO_CONEXAO:
+    st.error("⚠️ **Falha ao conectar no PostgreSQL (Supabase)**")
+    st.warning(f"**Detalhe do Erro:** `{ERRO_CONEXAO}`")
+    st.info("O sistema iniciou temporariamente em modo local (SQLite) para não ficar fora do ar.")
 
 # --- CRIAÇÃO DAS TABELAS AUTOMÁTICA ---
 def inicializar_tabelas():
@@ -129,7 +149,7 @@ def inicializar_tabelas():
         val_total_item NUMERIC(10, 2) DEFAULT 0.0
     );
     """
-    if TIPO_BANCO == "sqlite":
+    if "sqlite" in TIPO_BANCO:
         query_ddl = query_ddl.replace("SERIAL PRIMARY KEY", "INTEGER PRIMARY KEY AUTOINCREMENT")
         query_ddl = query_ddl.replace("NUMERIC(10, 2)", "REAL")
     
@@ -159,7 +179,7 @@ Forneceremos 01 (um) ano de garantia dos produtos e 03 (três) meses de garantia
 Nos preços cotados não estão incluídos serviços de desobstrução e/ou substituição de tubulação que eventualmente se façam necessários, bem como obras civis associadas.
 Qualquer outro tipo de serviço que seja necessário será informado com antecedência para que seja tomada as providencias cabíveis, será cobrado a taxa de 250,00 adicional."""
 
-# --- ESTILIZAÇÃO CSS CUSTOMIZADA (LARANJA CLARO + GLASSMORPHISM) ---
+# --- ESTILIZAÇÃO CSS CUSTOMIZADA ---
 st.markdown("""
 <style>
     .stApp { background: linear-gradient(135deg, #0b0f19 0%, #111827 100%) !important; color: #f8fafc !important; }
