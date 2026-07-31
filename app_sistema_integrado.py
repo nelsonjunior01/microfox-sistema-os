@@ -433,7 +433,8 @@ if menu_principal == "Dashboard":
 # ==============================================================================
 elif menu_principal == "Clientes":
     st.caption("Base de Clientes")
-    df_cli = pd.read_sql_query(text("SELECT id_cliente AS 'ID', nome AS 'Nome', cpf_cnpj AS 'CPF/CNPJ', telefone AS 'Telefone', cidade AS 'Cidade', uf AS 'UF' FROM clientes ORDER BY nome ASC"), engine)
+    # Consulta corrigida para a aba Clientes (Linha 436)
+df_cli = pd.read_sql_query(text('''SELECT id_cliente AS "ID", nome AS "Nome", cpf_cnpj AS "CPF/CNPJ", telefone AS "Telefone", cidade AS "Cidade", uf AS "UF" FROM clientes ORDER BY nome ASC'''), engine)
     st.dataframe(df_cli, use_container_width=True)
 
 # ==============================================================================
