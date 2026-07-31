@@ -453,6 +453,5 @@ elif menu_principal == "Catálogo":
                 st.success("Item salvo!")
                 st.rerun()
 
-    # Consulta corrigida para a aba Catálogo (Linha 456)
-df_cat = pd.read_sql_query(text('''SELECT id_item AS "ID", tipo AS "Tipo", descricao AS "Descrição", preco_venda AS "Preço (R$)" FROM itens_catalogo ORDER BY descricao ASC'''), engine)
+    df_cat = pd.read_sql_query(text('''SELECT id_item AS "ID", tipo AS "Tipo", descricao AS "Descrição", preco_venda AS "Preço (R$)" FROM itens_catalogo ORDER BY descricao ASC'''), engine)
     st.dataframe(df_cat, use_container_width=True)
