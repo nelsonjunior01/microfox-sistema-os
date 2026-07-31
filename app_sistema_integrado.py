@@ -300,7 +300,7 @@ if not st.session_state["autenticado"]:
         st.markdown(f'''
             <div style="text-align: center; background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); padding: 30px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.12);">
                 {logo_banner_html}
-                <h2 style="color: #ff8c00; margin-top: 10px;">MICRO FOX TI</h2>
+                <h2 style="color: #ff8c00; margin-top: 10px;">MICRO FOX SOLUÇÕES EM TI</h2>
                 <p style="color: #94a3b8; font-size: 13px;">SISTEMA CORPORATIVO DE O.S. E ORÇAMENTOS</p>
             </div>
         ''', unsafe_allow_html=True)
