@@ -254,23 +254,26 @@ def buscar_cidades_por_uf(sigla_uf):
     except Exception:
         return ["BRASÍLIA", "SAMAMBAIA", "TAGUATINGA"] if sigla_uf == "DF" else ["Capital / Centro"]
 
-# --- CARREGAMENTO DE LOGO (COMPATIBILIDADE AMPLIADA) ---
+# --- CARREGAMENTO DE LOGO (BUSCA PROFUNDA NO REPOSITÓRIO) ---
 import mimetypes
 
 diretorio_atual = os.path.dirname(os.path.abspath(__file__))
 
-# Lista de extensões e variações comuns
-extensoes = ['png', 'PNG', 'jpg', 'JPG', 'jpeg', 'JPEG', 'webp']
-candidatos_logo = [f"logo.{ext}" for ext in extensoes] + [f"LOGO.{ext}" for ext in extensoes] + [f"Logo.{ext}" for ext in extensoes]
-
+# 1. Varre o diretório do projeto procurando qualquer arquivo que comece com 'logo' ou contenha 'logo'
 caminho_logo_encontrado = None
-for nome_arq in candidatos_logo:
-    caminho_completo = os.path.join(diretorio_atual, nome_arq)
-    if os.path.exists(caminho_completo):
-        caminho_logo_encontrado = caminho_completo
+ extensoes_validas = ('.png', '.jpg', '.jpeg', '.webp', '.svg')
+
+for raiz, diretorioss, arquivos in os.walk(diretorio_atual):
+    for arquivo in arquivos:
+        nome_lower = arquivo.lower()
+        if 'logo' in nome_lower and nome_lower.endswith(extensoes_validas):
+            caminho_logo_encontrado = os.path.join(raiz, arquivo)
+            break
+    if caminho_logo_encontrado:
         break
 
 logo_html, logo_banner_html, watermark_html = "", "", ""
+
 if caminho_logo_encontrado:
     mime_type, _ = mimetypes.guess_type(caminho_logo_encontrado)
     if not mime_type:
@@ -283,6 +286,10 @@ if caminho_logo_encontrado:
         logo_html = f'<img src="{src_data}" style="max-height: 65px; max-width: 160px; margin-right: 15px;"/>'
         logo_banner_html = f'<img src="{src_data}" style="width: 85px; height: 85px; border-radius: 50%; object-fit: cover; border: 2px solid #ff8c00; margin-bottom: 5px;"/>'
         watermark_html = f'<img src="{src_data}" class="watermark"/>'
+else:
+    # Diagnóstico caso o arquivo não seja encontrado no servidor
+    arquivos_no_dir = os.listdir(diretorio_atual)
+    st.sidebar.caption(f"⚠️ Imagem da logo não localizada. Arquivos na raiz: {arquivos_no_dir}")
 
 # --- TELA DE LOGIN ---
 if not st.session_state["autenticado"]:
