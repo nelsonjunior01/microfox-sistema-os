@@ -388,40 +388,72 @@ menu_principal = st.session_state["menu_principal_nav"]
 # ==============================================================================
 # DASHBOARD
 # ==============================================================================
-# --- NAVEGAÇÃO REATIVA (CALLBACKS) ---
-if "menu_principal_nav" not in st.session_state:
-    st.session_state["menu_principal_nav"] = "Dashboard"
+# ==============================================================================
+# RENDERIZAÇÃO DAS TELAS / MÓDULOS
+# ==============================================================================
 
-# Função callback para forçar a troca no estado antes do re-render
-def set_pagina(pagina):
-    st.session_state["menu_principal_nav"] = pagina
+if menu_principal == "Dashboard":
+    st.subheader("Painel Geral")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("### Últimas Ordens de Serviço")
+        try:
+            df_os = pd.read_sql_query(text('''SELECT numero_os AS "Nº OS", cliente_nome AS "Cliente", equipamento AS "Equipamento", val_total AS "Total (R$)" FROM ordens_servico ORDER BY id_os DESC LIMIT 5'''), engine)
+            st.dataframe(df_os, use_container_width=True)
+        except Exception as e:
+            st.info("Nenhuma ordem de serviço registrada ou tabela vazia.")
 
-# Mapeamento dos botões
-botoes_nav = [
-    ("Dashboard", "Dashboard"),
-    ("NOVA O.S.", "Criar O.S."),
-    ("BUSCAR O.S.", "Consultar O.S."),
-    ("NOVO ORÇAMENTO", "Criar Orçamento"),
-    ("BUSCAR ORÇAMENTOS", "Consultar Orçamento"),
-    ("CLIENTES", "Clientes"),
-    ("CATÁLOGO", "Catálogo")
-]
+    with col2:
+        st.markdown("### Últimos Orçamentos")
+        try:
+            df_orc = pd.read_sql_query(text('''SELECT numero_orcamento AS "Nº Proposta", cliente_nome AS "Cliente", val_total AS "Total (R$)", status AS "Status" FROM orcamentos ORDER BY id_orcamento DESC LIMIT 5'''), engine)
+            st.dataframe(df_orc, use_container_width=True)
+        except Exception as e:
+            st.info("Nenhum orçamento registrado ou tabela vazia.")
 
-cols = st.columns(len(botoes_nav))
+elif menu_principal == "Criar O.S.":
+    st.subheader("Nova Ordem de Serviço")
+    st.info("Formulário de criação de O.S.")
 
-for i, (rotulo, destino) in enumerate(botoes_nav):
-    cols[i].button(
-        rotulo,
-        key=f"btn_header_{i}_{destino}",
-        on_click=set_pagina,
-        args=(destino,),
-        use_container_width=True
-    )
+elif menu_principal == "Consultar O.S.":
+    st.subheader("Consultar / Buscar O.S.")
+    st.info("Painel de busca de Ordens de Serviço.")
 
-st.markdown("<hr style='border: 1px solid rgba(255, 255, 255, 0.1); margin-top: 10px; margin-bottom: 20px;'>", unsafe_allow_html=True)
+elif menu_principal == "Criar Orçamento":
+    st.subheader("Novo Orçamento")
+    st.info("Formulário de criação de Orçamento.")
 
-# Atribuição da variável de rota
-menu_principal = st.session_state["menu_principal_nav"]
+elif menu_principal == "Consultar Orçamento":
+    st.subheader("Consultar / Buscar Orçamentos")
+    st.info("Painel de busca de Orçamentos.")
+
+elif menu_principal == "Clientes":
+    st.caption("Base de Clientes")
+    try:
+        df_cli = pd.read_sql_query(text('''SELECT id_cliente AS "ID", nome AS "Nome", cpf_cnpj AS "CPF/CNPJ", telefone AS "Telefone", cidade AS "Cidade", uf AS "UF" FROM clientes ORDER BY nome ASC'''), engine)
+        st.dataframe(df_cli, use_container_width=True)
+    except Exception as e:
+        st.info("Base de clientes vazia ou não inicializada.")
+
+elif menu_principal == "Catálogo":
+    st.caption("Catálogo de Produtos e Serviços")
+    with st.form("form_cat"):
+        c1, c2, c3 = st.columns([1, 2, 1])
+        tipo = c1.selectbox("Tipo", ["Serviço", "Produto"])
+        desc = c2.text_input("Descrição")
+        preco = c3.number_input("Preço Venda", min_value=0.0, step=10.0)
+        if st.form_submit_button("Salvar no Catálogo"):
+            if desc:
+                with engine.begin() as conn:
+                    conn.execute(text("INSERT INTO itens_catalogo (tipo, descricao, preco_venda) VALUES (:t, :d, :p)"), {"t": tipo, "d": desc, "p": preco})
+                st.success("Item salvo!")
+                st.rerun()
+
+    try:
+        df_cat = pd.read_sql_query(text('''SELECT id_item AS "ID", tipo AS "Tipo", descricao AS "Descrição", preco_venda AS "Preço (R$)" FROM itens_catalogo ORDER BY descricao ASC'''), engine)
+        st.dataframe(df_cat, use_container_width=True)
+    except Exception as e:
+        st.info("Catálogo vazio ou não inicializado.")
 
 # ==============================================================================
 # BASE DE CLIENTES
