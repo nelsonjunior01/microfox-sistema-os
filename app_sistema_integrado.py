@@ -296,7 +296,14 @@ if not st.session_state["autenticado"]:
     col_l1, col_l2, col_l3 = st.columns([1, 1.5, 1])
     with col_l2:
         st.markdown("<br><br>", unsafe_allow_html=True)
-        st.markdown(f'<div style="text-align: center; background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); padding: 30px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.12);"><h2 style="color: #ff8c00;">MICRO FOX TI</h2><p style="color: #94a3b8; font-size: 13px;">SISTEMA CORPORATIVO DE O.S. E ORÇAMENTOS</p></div>', unsafe_allow_html=True)
+        # Inserido o logo_banner_html na tela de login
+        st.markdown(f'''
+            <div style="text-align: center; background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); padding: 30px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.12);">
+                {logo_banner_html}
+                <h2 style="color: #ff8c00; margin-top: 10px;">MICRO FOX TI</h2>
+                <p style="color: #94a3b8; font-size: 13px;">SISTEMA CORPORATIVO DE O.S. E ORÇAMENTOS</p>
+            </div>
+        ''', unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         with st.form("form_login"):
             usuario = st.text_input("Usuário de Acesso")
