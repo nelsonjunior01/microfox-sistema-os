@@ -7,14 +7,46 @@ import requests
 import re
 import hashlib
 import hmac
+import mimetypes
 from sqlalchemy import create_engine, text
 
-# Configuração da Página Web
+# --- BUSCA PROFUNDA DA LOGO (FAVICON E INTERFACE) ---
+diretorio_atual = os.path.dirname(os.path.abspath(__file__))
+caminho_logo_encontrado = None
+extensoes_validas = ('.png', '.jpg', '.jpeg', '.webp', '.svg')
+
+for raiz, diretorios, arquivos in os.walk(diretorio_atual):
+    for arquivo in arquivos:
+        nome_lower = arquivo.lower()
+        if 'logo' in nome_lower and nome_lower.endswith(extensoes_validas):
+            caminho_logo_encontrado = os.path.join(raiz, arquivo)
+            break
+    if caminho_logo_encontrado:
+        break
+
+# --- CONFIGURAÇÃO DA PÁGINA (FAVICON NA ABA DO NAVEGADOR) ---
 st.set_page_config(
     page_title="Micro Fox Soluções em TI - Sistema Integrado de Gestão", 
+    page_icon=caminho_logo_encontrado if caminho_logo_encontrado else "🛠️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# --- TRATAMENTO HTML DA LOGO ---
+logo_html, logo_banner_html, watermark_html = "", "", ""
+
+if caminho_logo_encontrado:
+    mime_type, _ = mimetypes.guess_type(caminho_logo_encontrado)
+    if not mime_type:
+        mime_type = "image/png"
+        
+    with open(caminho_logo_encontrado, "rb") as image_file:
+        logo_b64 = base64.b64encode(image_file.read()).decode()
+        src_data = f"data:{mime_type};base64,{logo_b64}"
+        
+        logo_html = f'<img src="{src_data}" style="max-height: 65px; max-width: 160px; margin-right: 15px;"/>'
+        logo_banner_html = f'<img src="{src_data}" style="width: 85px; height: 85px; border-radius: 50%; object-fit: cover; border: 2px solid #ff8c00; margin-bottom: 5px;"/>'
+        watermark_html = f'<img src="{src_data}" class="watermark"/>'
 
 # --- CONEXÃO COM BANCO DE DADOS HÍBRIDO E TRATAMENTO DE ERRO ---
 @st.cache_resource
