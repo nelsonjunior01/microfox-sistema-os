@@ -356,6 +356,7 @@ empresa_cnpj = st.sidebar.text_input("CNPJ", "18.710.097/0001-91")
 empresa_tel = st.sidebar.text_input("Telefone", "(61) 3246-6001")
 empresa_email = st.sidebar.text_input("E-mail", "atendimento@microfox.com.br")
 
+
 st.sidebar.caption(f"Banco Conectado: **{TIPO_BANCO.upper()}**")
 st.sidebar.markdown("---")
 if st.sidebar.button("Encerrar Sessão", use_container_width=True):
