@@ -259,11 +259,11 @@ import mimetypes
 
 diretorio_atual = os.path.dirname(os.path.abspath(__file__))
 
-# 1. Varre o diretório do projeto procurando qualquer arquivo que comece com 'logo' ou contenha 'logo'
+# Varre o diretório do projeto procurando qualquer arquivo de imagem que contenha 'logo' no nome
 caminho_logo_encontrado = None
- extensoes_validas = ('.png', '.jpg', '.jpeg', '.webp', '.svg')
+extensoes_validas = ('.png', '.jpg', '.jpeg', '.webp', '.svg')
 
-for raiz, diretorioss, arquivos in os.walk(diretorio_atual):
+for raiz, diretorios, arquivos in os.walk(diretorio_atual):
     for arquivo in arquivos:
         nome_lower = arquivo.lower()
         if 'logo' in nome_lower and nome_lower.endswith(extensoes_validas):
@@ -287,7 +287,7 @@ if caminho_logo_encontrado:
         logo_banner_html = f'<img src="{src_data}" style="width: 85px; height: 85px; border-radius: 50%; object-fit: cover; border: 2px solid #ff8c00; margin-bottom: 5px;"/>'
         watermark_html = f'<img src="{src_data}" class="watermark"/>'
 else:
-    # Diagnóstico caso o arquivo não seja encontrado no servidor
+    # Caso não ache o arquivo com a palavra 'logo', exibe lista para depuração
     arquivos_no_dir = os.listdir(diretorio_atual)
     st.sidebar.caption(f"⚠️ Imagem da logo não localizada. Arquivos na raiz: {arquivos_no_dir}")
 
