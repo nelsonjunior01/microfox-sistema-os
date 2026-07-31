@@ -388,45 +388,40 @@ menu_principal = st.session_state["menu_principal_nav"]
 # ==============================================================================
 # DASHBOARD
 # ==============================================================================
-if menu_principal == "Dashboard":
-    with engine.connect() as conn:
-        tot_os = conn.execute(text("SELECT COUNT(*) FROM ordens_servico")).scalar() or 0
-        fat_os = conn.execute(text("SELECT SUM(val_total) FROM ordens_servico")).scalar() or 0.0
-        tot_orc = conn.execute(text("SELECT COUNT(*) FROM orcamentos")).scalar() or 0
-        fat_orc = conn.execute(text("SELECT SUM(val_total) FROM orcamentos WHERE status = 'Aprovado'")).scalar() or 0.0
+# --- NAVEGAÇÃO REATIVA (CALLBACKS) ---
+if "menu_principal_nav" not in st.session_state:
+    st.session_state["menu_principal_nav"] = "Dashboard"
 
-    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-    with col_m1:
-        st.markdown('<div class="metric-title" style="text-align:center;">Total O.S.</div>', unsafe_allow_html=True)
-        if st.button(f"{tot_os} O.S.", key="b1", use_container_width=True):
-            st.session_state["menu_principal_nav"] = "Consultar O.S."
-            st.rerun()
-    with col_m2:
-        st.markdown('<div class="metric-title" style="text-align:center;">Faturamento O.S.</div>', unsafe_allow_html=True)
-        if st.button(f"R$ {float(fat_os):,.2f}", key="b2", use_container_width=True):
-            st.session_state["menu_principal_nav"] = "Consultar O.S."
-            st.rerun()
-    with col_m3:
-        st.markdown('<div class="metric-title" style="text-align:center;">Total Orçamentos</div>', unsafe_allow_html=True)
-        if st.button(f"{tot_orc} Propostas", key="b3", use_container_width=True):
-            st.session_state["menu_principal_nav"] = "Consultar Orçamento"
-            st.rerun()
-    with col_m4:
-        st.markdown('<div class="metric-title" style="text-align:center;">Aprovados</div>', unsafe_allow_html=True)
-        if st.button(f"R$ {float(fat_orc):,.2f}", key="b4", use_container_width=True):
-            st.session_state["menu_principal_nav"] = "Consultar Orçamento"
-            st.rerun()
+# Função callback para forçar a troca no estado antes do re-render
+def set_pagina(pagina):
+    st.session_state["menu_principal_nav"] = pagina
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    c_t1, c_t2 = st.columns(2)
-    with c_t1:
-        st.markdown('<h3 class="centered-header">Últimas Ordens de Serviço</h3>', unsafe_allow_html=True)
-        df_os = pd.read_sql_query(text('''SELECT numero_os AS "Nº OS", cliente_nome AS "Cliente", equipamento AS "Equipamento", val_total AS "Total (R$)" FROM ordens_servico ORDER BY id_os DESC LIMIT 5'''), engine)
-        st.dataframe(df_os, use_container_width=True)
-    with c_t2:
-        st.markdown('<h3 class="centered-header">Últimos Orçamentos</h3>', unsafe_allow_html=True)
-        df_orc = pd.read_sql_query(text('''SELECT numero_orcamento AS "Nº Proposta", cliente_nome AS "Cliente", val_total AS "Total (R$)", status AS "Status" FROM orcamentos ORDER BY id_orcamento DESC LIMIT 5'''), engine)
-        st.dataframe(df_orc, use_container_width=True)
+# Mapeamento dos botões
+botoes_nav = [
+    ("Dashboard", "Dashboard"),
+    ("NOVA O.S.", "Criar O.S."),
+    ("BUSCAR O.S.", "Consultar O.S."),
+    ("NOVO ORÇAMENTO", "Criar Orçamento"),
+    ("BUSCAR ORÇAMENTOS", "Consultar Orçamento"),
+    ("CLIENTES", "Clientes"),
+    ("CATÁLOGO", "Catálogo")
+]
+
+cols = st.columns(len(botoes_nav))
+
+for i, (rotulo, destino) in enumerate(botoes_nav):
+    cols[i].button(
+        rotulo,
+        key=f"btn_header_{i}_{destino}",
+        on_click=set_pagina,
+        args=(destino,),
+        use_container_width=True
+    )
+
+st.markdown("<hr style='border: 1px solid rgba(255, 255, 255, 0.1); margin-top: 10px; margin-bottom: 20px;'>", unsafe_allow_html=True)
+
+# Atribuição da variável de rota
+menu_principal = st.session_state["menu_principal_nav"]
 
 # ==============================================================================
 # BASE DE CLIENTES
