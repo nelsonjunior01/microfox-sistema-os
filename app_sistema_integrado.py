@@ -17,7 +17,6 @@ diretorio_atual = os.path.dirname(os.path.abspath(__file__))
 extensoes_validas = ('.png', '.jpg', '.jpeg', '.webp', '.svg')
 caminho_logo_encontrado = None
 
-# Busca recursiva no repositório por qualquer arquivo com 'logo' no nome
 for raiz, diretorios, arquivos in os.walk(diretorio_atual):
     for arquivo in arquivos:
         nome_lower = arquivo.lower()
@@ -27,25 +26,20 @@ for raiz, diretorios, arquivos in os.walk(diretorio_atual):
     if caminho_logo_encontrado:
         break
 
-# Função para arredondar a imagem para uso como Favicon
 def gerar_favicon_arredondado(caminho_imagem):
     try:
         img = Image.open(caminho_imagem).convert("RGBA")
         tamanho = min(img.size)
-        
-        # Recorta um quadrado central
         left = (img.width - tamanho) / 2
         top = (img.height - tamanho) / 2
         right = (img.width + tamanho) / 2
         bottom = (img.height + tamanho) / 2
         img = img.crop((left, top, right, bottom))
         
-        # Cria uma máscara circular
         mask = Image.new('L', (tamanho, tamanho), 0)
         draw = ImageDraw.Draw(mask)
         draw.ellipse((0, 0, tamanho, tamanho), fill=255)
         
-        # Aplica o recorte circular
         img_arredondada = Image.new('RGBA', (tamanho, tamanho), (0, 0, 0, 0))
         img_arredondada.paste(img, (0, 0), mask=mask)
         return img_arredondada
@@ -70,7 +64,6 @@ if caminho_logo_encontrado and os.path.exists(caminho_logo_encontrado):
 if not src_data:
     src_data = "https://cdn-icons-png.flaticon.com/512/3659/3659898.png"
 
-# CONFIGURAÇÃO DA PÁGINA (Favicon arredondado na aba do navegador)
 st.set_page_config(
     page_title="Micro Fox Soluções em TI - Sistema Integrado de Gestão", 
     page_icon=favicon_img if favicon_img else "🛠️",
@@ -78,10 +71,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# HTMLs pré-formatados da Logo
 logo_html = f'<img src="{src_data}" style="max-height: 65px; max-width: 160px; margin-right: 15px;"/>'
-logo_banner_html = f'<img src="{src_data}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #38bdf8; margin-bottom: 10px;"/>'
-logo_login_html = f'<img src="{src_data}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 2px solid #38bdf8; margin-bottom: 15px;"/>'
+logo_banner_html = f'<img src="{src_data}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #f97316; margin-bottom: 10px;"/>'
+logo_login_html = f'<img src="{src_data}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 2px solid #f97316; margin-bottom: 15px;"/>'
 watermark_html = f'<img src="{src_data}" class="watermark"/>'
 
 # ==============================================================================
@@ -117,21 +109,24 @@ def validar_credenciais(usuario_digitado, senha_digitada):
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
 
+if "pagina_ativa" not in st.session_state:
+    st.session_state["pagina_ativa"] = "Painel Geral"
+
 # --- TEXTOS PADRÃO ---
 TEXTO_GARANTIA_ORCAMENTO = """GARANTIA DE EQUIPAMENTOS E SERVIÇOS
 Forneceremos 01 (um) ano de garantia dos produtos e 03 (três) meses de garantia dos nossos serviços e consultoria gratuita pelo mesmo período.
 Nos preços cotados não estão incluídos serviços de desobstrução e/ou substituição de tubulação que eventualmente se façam necessários, bem como obras civis associadas.
 Qualquer outro tipo de serviço que seja necessário será informado com antecedência para que seja tomada as providencias cabíveis, será cobrado a taxa de 250,00 adicional."""
 
-# --- ESTILIZAÇÃO CSS CUSTOMIZADA ---
+# --- ESTILIZAÇÃO CSS CUSTOMIZADA (LARANJA CLARO ESPELHADO / GLASSMORPHISM) ---
 st.markdown("""
 <style>
     .stApp { background-color: #0f172a !important; color: #f8fafc !important; }
     [data-testid="stSidebar"] { background-color: #020617 !important; border-right: 1px solid #1e293b; }
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 { color: #38bdf8 !important; font-weight: 700; }
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 { color: #f97316 !important; font-weight: 700; }
     [data-testid="stSidebar"] label, [data-testid="stSidebar"] span, [data-testid="stSidebar"] p { color: #cbd5e1 !important; font-weight: 600; }
     [data-testid="stSidebar"] input { color: #0f172a !important; background-color: #ffffff !important; border-radius: 6px !important; }
-    h1, h2, h3 { color: #38bdf8 !important; font-family: 'Inter', Arial, sans-serif; font-weight: 700; }
+    h1, h2, h3 { color: #f97316 !important; font-family: 'Inter', Arial, sans-serif; font-weight: 700; }
     .stMainBlockContainer label, .stMainBlockContainer p, .stMainBlockContainer caption { color: #cbd5e1 !important; font-weight: 600 !important; }
     .stMainBlockContainer input, .stMainBlockContainer textarea, .stMainBlockContainer select, div[data-baseweb="select"] span {
         color: #0f172a !important; background-color: #ffffff !important; font-weight: 500 !important;
@@ -140,11 +135,7 @@ st.markdown("""
         border-radius: 8px !important; border: 1px solid #334155 !important; background-color: #ffffff !important;
     }
     .metric-title { font-size: 13px; color: #94a3b8 !important; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .stButton > button {
-        background-color: #2563eb !important; color: #ffffff !important; font-weight: 700 !important;
-        border-radius: 8px !important; padding: 10px 24px !important; border: none !important; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
-    }
-    .stButton > button:hover { background-color: #3b82f6 !important; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
+    
     .section-card { background-color: #1e293b; border-radius: 12px; padding: 24px; border: 1px solid #334155; margin-bottom: 20px; }
     
     .hero-banner {
@@ -152,39 +143,42 @@ st.markdown("""
         border: 1px solid #334155;
         border-radius: 12px;
         padding: 25px 30px;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         text-align: center;
     }
-    .hero-title { font-size: 26px; font-weight: 700; color: #38bdf8; margin-top: 10px; text-transform: uppercase; letter-spacing: 1px; }
+    .hero-title { font-size: 26px; font-weight: 700; color: #f97316; margin-top: 10px; text-transform: uppercase; letter-spacing: 1px; }
     .hero-subtitle { font-size: 14px; color: #94a3b8; margin-top: 4px; }
 
-    /* ESTILIZAÇÃO DAS ABAS HORIZONTAIS DE NAVEGAÇÃO */
-    button[data-baseweb="tab"] {
-        background-color: #1e293b !important;
-        color: #cbd5e1 !important;
-        border-radius: 8px 8px 0 0 !important;
-        padding: 12px 20px !important;
-        font-weight: 600 !important;
-        border: 1px solid #334155 !important;
-        border-bottom: none !important;
-        margin-right: 4px !important;
+    /* ESTILO DOS BOTÕES DE MENU LARANJA CLARO ESPELHADO */
+    div.stButton > button {
+        background: linear-gradient(135deg, rgba(251, 146, 60, 0.2) 0%, rgba(249, 115, 22, 0.4) 100%) !important;
+        color: #ffedd5 !important;
+        font-weight: 700 !important;
+        border-radius: 10px !important;
+        padding: 10px 16px !important;
+        border: 1px solid rgba(251, 146, 60, 0.5) !important;
+        backdrop-filter: blur(8px) !important;
+        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease-in-out !important;
+        width: 100% !important;
     }
-    button[data-baseweb="tab"][aria-selected="true"] {
-        background-color: #2563eb !important;
+    div.stButton > button:hover {
+        background: linear-gradient(135deg, rgba(251, 146, 60, 0.4) 0%, rgba(249, 115, 22, 0.7) 100%) !important;
         color: #ffffff !important;
-        border-color: #2563eb !important;
-    }
-    div[data-baseweb="tab-highlight"] {
-        background-color: #38bdf8 !important;
+        border-color: #fdba74 !important;
+        box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+        transform: translateY(-2px);
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- FUNÇÃO CONSULTA CNPJ VIA BRASILAPI ---
 def consultar_cnpj_api(cnpj):
     cnpj_limpo = re.sub(r'\D', '', cnpj)
     if len(cnpj_limpo) == 14:
@@ -229,7 +223,7 @@ if not st.session_state["autenticado"]:
         card_html = (
             '<div style="text-align: center; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155;">'
             f'{logo_login_html}'
-            '<h2 style="color: #38bdf8; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">MICRO FOX TI</h2>'
+            '<h2 style="color: #f97316; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">MICRO FOX TI</h2>'
             '<p style="color: #94a3b8; font-size: 13px; margin-bottom: 0;">SISTEMA CORPORATIVO DE O.S. E ORÇAMENTOS</p>'
             '</div>'
         )
@@ -369,7 +363,7 @@ if st.sidebar.button("Encerrar Sessão", use_container_width=True):
     st.rerun()
 
 # ==============================================================================
-# CABEÇALHO HERO E NAV HORIZONTAL NA DASHBOARD
+# HERO BANNER E MENU DE NAVEGAÇÃO EM BOTÕES HORIZONTAIS
 # ==============================================================================
 banner_centralizado_html = (
     '<div class="hero-banner">'
@@ -380,23 +374,46 @@ banner_centralizado_html = (
 )
 st.markdown(banner_centralizado_html, unsafe_allow_html=True)
 
-# NAVEGAÇÃO HORIZONTAL VIA ABAS
-tab_dash, tab_criar_os, tab_cons_os, tab_criar_orc, tab_cons_orc, tab_clientes, tab_catalogo = st.tabs([
-    "Painel Geral",
-    "Criar O.S.",
-    "Consultar O.S.",
-    "Criar Orçamento",
-    "Consultar Orçamento",
-    "Base Clientes",
-    "Catálogo"
-])
+# BARRA DE BOTÕES DE MENU HORIZONTAL
+c_nav1, c_nav2, c_nav3, c_nav4, c_nav5, c_nav6, c_nav7 = st.columns(7)
+
+if c_nav1.button("Painel Geral", key="btn_nav_dash"):
+    st.session_state["pagina_ativa"] = "Painel Geral"
+    st.rerun()
+
+if c_nav2.button("Criar O.S.", key="btn_nav_c_os"):
+    st.session_state["pagina_ativa"] = "Criar O.S."
+    st.rerun()
+
+if c_nav3.button("Consultar O.S.", key="btn_nav_v_os"):
+    st.session_state["pagina_ativa"] = "Consultar O.S."
+    st.rerun()
+
+if c_nav4.button("Criar Orçamento", key="btn_nav_c_orc"):
+    st.session_state["pagina_ativa"] = "Criar Orçamento"
+    st.rerun()
+
+if c_nav5.button("Consultar Orçamento", key="btn_nav_v_orc"):
+    st.session_state["pagina_ativa"] = "Consultar Orçamento"
+    st.rerun()
+
+if c_nav6.button("Base Clientes", key="btn_nav_cli"):
+    st.session_state["pagina_ativa"] = "Base Clientes"
+    st.rerun()
+
+if c_nav7.button("Catálogo", key="btn_nav_cat"):
+    st.session_state["pagina_ativa"] = "Catálogo"
+    st.rerun()
+
+st.markdown("<hr style='border: 1px solid #334155; margin-top: 5px; margin-bottom: 20px;'>", unsafe_allow_html=True)
 
 # ==============================================================================
-# MÓDULOS EMBUTIDOS NAS ABAS HORIZONTAIS
+# EXIBIÇÃO DA PÁGINA ATIVA SELECIONADA
 # ==============================================================================
+pagina = st.session_state["pagina_ativa"]
 
-# --- ABA 1: PAINEL GERAL (DASHBOARD) ---
-with tab_dash:
+# --- PAINEL GERAL ---
+if pagina == "Painel Geral":
     st.caption("Indicadores gerais e resumo financeiro do sistema")
 
     tot_os = cursor.execute("SELECT COUNT(*) FROM ordens_servico").fetchone()[0]
@@ -408,19 +425,19 @@ with tab_dash:
 
     with col_m1:
         st.markdown('<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Total de O.S.</div>', unsafe_allow_html=True)
-        st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>{tot_os} O.S.</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center; color: #f97316;'>{tot_os} O.S.</h3>", unsafe_allow_html=True)
 
     with col_m2:
         st.markdown('<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Faturamento O.S.</div>', unsafe_allow_html=True)
-        st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>R$ {float(fat_os):,.2f}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center; color: #f97316;'>R$ {float(fat_os):,.2f}</h3>", unsafe_allow_html=True)
 
     with col_m3:
         st.markdown('<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Total Orçamentos</div>', unsafe_allow_html=True)
-        st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>{tot_orc} Propostas</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center; color: #f97316;'>{tot_orc} Propostas</h3>", unsafe_allow_html=True)
 
     with col_m4:
         st.markdown('<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Aprovados</div>', unsafe_allow_html=True)
-        st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>R$ {float(fat_orc):,.2f}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center; color: #f97316;'>R$ {float(fat_orc):,.2f}</h3>", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     col_t1, col_t2 = st.columns(2)
@@ -441,8 +458,8 @@ with tab_dash:
         """, conn)
         st.dataframe(df_ultimos_orc, use_container_width=True)
 
-# --- ABA 2: CRIAR O.S. ---
-with tab_criar_os:
+# --- CRIAR O.S. ---
+elif pagina == "Criar O.S.":
     st.caption("Cadastre novas ordens de serviço de Entrada ou Saída")
 
     if "cli_data" not in st.session_state:
@@ -620,8 +637,8 @@ with tab_criar_os:
                 st.session_state["cli_data"] = {"id": None, "nome": "", "cpf_cnpj": "", "tel": "", "contato": "", "end": "", "bairro": "", "cidade": "BRASÍLIA", "uf": "DF"}
                 st.success(f"Ordem de Serviço ({tipo_doc_sel}) Nº {numero_os} registrada com sucesso.")
 
-# --- ABA 3: CONSULTAR O.S. ---
-with tab_cons_os:
+# --- CONSULTAR O.S. ---
+elif pagina == "Consultar O.S.":
     st.caption("Consulte e imprima os comprovantes de Entrada ou Saída de O.S.")
     
     df = pd.read_sql_query("SELECT id_os AS 'ID', numero_os AS 'Nº OS', cliente_nome AS 'Cliente', data_abertura AS 'Abertura', val_total AS 'Total (R$)', COALESCE(tipo_documento, 'Comprovante de Saída') AS 'Tipo' FROM ordens_servico ORDER BY id_os DESC", conn)
@@ -746,7 +763,7 @@ with tab_cons_os:
                             position: relative;
                             top: -6px;
                         }}
-                        .btn-print {{ background-color: #2563eb; color: #fff; border: none; padding: 10px 20px; font-size: 12px; font-weight: bold; cursor: pointer; border-radius: 6px; margin-bottom: 10px; text-transform: uppercase; }}
+                        .btn-print {{ background-color: #f97316; color: #fff; border: none; padding: 10px 20px; font-size: 12px; font-weight: bold; cursor: pointer; border-radius: 6px; margin-bottom: 10px; text-transform: uppercase; }}
                         @media print {{ 
                             .btn-print {{ display: none !important; }} 
                             body {{ padding: 0; margin: 0; }}
@@ -786,7 +803,7 @@ with tab_cons_os:
                         .os-grid-2 {{ display: flex; justify-content: space-between; position: relative; z-index: 1; }}
                         .os-grid-3 {{ display: grid; grid-template-columns: 1fr 1fr 1fr; position: relative; z-index: 1; }}
                         .signature-line {{ border-top: 1px solid #000; margin-top: 35px; text-align: center; }}
-                        .btn-print {{ background-color: #2563eb; color: #fff; border: none; padding: 12px 24px; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 6px; margin-bottom: 15px; text-transform: uppercase; }}
+                        .btn-print {{ background-color: #f97316; color: #fff; border: none; padding: 12px 24px; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 6px; margin-bottom: 15px; text-transform: uppercase; }}
                         @media print {{ .btn-print {{ display: none !important; }} body {{ padding: 0; }} }}
                     </style>
                 </head>
@@ -880,8 +897,8 @@ with tab_cons_os:
         else:
             st.error("O.S. não encontrada.")
 
-# --- ABA 4: CRIAR ORÇAMENTO ---
-with tab_criar_orc:
+# --- CRIAR ORÇAMENTO ---
+elif pagina == "Criar Orçamento":
     st.caption("Monte e cadastre orçamentos comerciais completos")
 
     if "itens_orcamento" not in st.session_state:
@@ -1013,8 +1030,8 @@ with tab_criar_orc:
             st.session_state["itens_orcamento"] = []
             st.success(f"Proposta Comercial Nº {numero_orc} salva com sucesso.")
 
-# --- ABA 5: CONSULTAR ORÇAMENTO ---
-with tab_cons_orc:
+# --- CONSULTAR ORÇAMENTO ---
+elif pagina == "Consultar Orçamento":
     st.caption("Consulte e imprima orçamentos comerciais em PDF")
 
     df_busca = pd.read_sql_query("""
@@ -1074,7 +1091,7 @@ with tab_cons_orc:
                     .table-itens {{ width: 100%; border-collapse: collapse; margin: 10px 0; position: relative; z-index: 1; }}
                     .table-itens th {{ background-color: #f2f2f2; padding: 6px; border: 1px solid #000; text-align: left; font-size: 11px; }}
                     .content-section {{ position: relative; z-index: 1; }}
-                    .btn-print {{ background-color: #2563eb; color: #fff; border: none; padding: 12px 24px; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 6px; margin-bottom: 15px; text-transform: uppercase; }}
+                    .btn-print {{ background-color: #f97316; color: #fff; border: none; padding: 12px 24px; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 6px; margin-bottom: 15px; text-transform: uppercase; }}
                     .termo-box {{ font-size: 10px; text-align: justify; line-height: 1.4; background: #fafafa; padding: 8px; border: 1px solid #ddd; margin-top: 5px; }}
                     @media print {{ .btn-print {{ display: none !important; }} body {{ padding: 0; }} }}
                 </style>
@@ -1166,8 +1183,8 @@ with tab_cons_orc:
         else:
             st.error("Orçamento não encontrado.")
 
-# --- ABA 6: BASE DE CLIENTES ---
-with tab_clientes:
+# --- BASE DE CLIENTES ---
+elif pagina == "Base Clientes":
     st.caption("Consulte a base de clientes cadastrados no sistema")
     df_clientes = pd.read_sql_query("""
         SELECT id_cliente AS 'ID', nome AS 'Nome / Razão Social', cpf_cnpj AS 'CPF/CNPJ', 
@@ -1176,8 +1193,8 @@ with tab_clientes:
     """, conn)
     st.dataframe(df_clientes, use_container_width=True)
 
-# --- ABA 7: CATÁLOGO DE PRODUTOS E SERVIÇOS ---
-with tab_catalogo:
+# --- CATÁLOGO DE PRODUTOS E SERVIÇOS ---
+elif pagina == "Catálogo":
     st.caption("Cadastre produtos e serviços para reutilização ágil")
 
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
