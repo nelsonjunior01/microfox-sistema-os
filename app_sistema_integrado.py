@@ -152,7 +152,7 @@ st.markdown("""
         border: 1px solid #334155;
         border-radius: 12px;
         padding: 25px 30px;
-        margin-bottom: 25px;
+        margin-bottom: 15px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -161,6 +161,26 @@ st.markdown("""
     }
     .hero-title { font-size: 26px; font-weight: 700; color: #38bdf8; margin-top: 10px; text-transform: uppercase; letter-spacing: 1px; }
     .hero-subtitle { font-size: 14px; color: #94a3b8; margin-top: 4px; }
+
+    /* ESTILIZAÇÃO DAS ABAS HORIZONTAIS DE NAVEGAÇÃO */
+    button[data-baseweb="tab"] {
+        background-color: #1e293b !important;
+        color: #cbd5e1 !important;
+        border-radius: 8px 8px 0 0 !important;
+        padding: 12px 20px !important;
+        font-weight: 600 !important;
+        border: 1px solid #334155 !important;
+        border-bottom: none !important;
+        margin-right: 4px !important;
+    }
+    button[data-baseweb="tab"][aria-selected="true"] {
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+        border-color: #2563eb !important;
+    }
+    div[data-baseweb="tab-highlight"] {
+        background-color: #38bdf8 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -334,7 +354,7 @@ CREATE TABLE IF NOT EXISTS orcamento_itens (
 conn.commit()
 
 # ==============================================================================
-# BARRA LATERAL DA EMPRESA E MENU INTEGRADO
+# BARRA LATERAL (APENAS DADOS DA EMPRESA E SESSÃO)
 # ==============================================================================
 st.sidebar.markdown("### Dados da Empresa")
 empresa_nome = st.sidebar.text_input("Razão Social", "MICRO FOX SOLUÇÕES E SERVIÇOS EM TI")
@@ -344,50 +364,40 @@ empresa_tel = st.sidebar.text_input("Telefone", "(61) 3246-6001")
 empresa_email = st.sidebar.text_input("E-mail", "atendimento@microfox.com.br")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### Navegação Geral")
-
-opcoes_menu = [
-    "Painel de Controle (Dashboard)",
-    "Criar Ordem de Serviço (O.S.)",
-    "Consultar / Imprimir O.S.",
-    "Criar Orçamento Comercial",
-    "Consultar / Imprimir Orçamento",
-    "Base de Clientes",
-    "Catálogo de Produtos e Serviços"
-]
-
-if "menu_principal_nav" not in st.session_state:
-    st.session_state["menu_principal_nav"] = "Painel de Controle (Dashboard)"
-
-menu_principal = st.sidebar.radio(
-    "Selecione o Módulo", 
-    opcoes_menu, 
-    index=opcoes_menu.index(st.session_state["menu_principal_nav"]),
-    key="menu_radio_key"
-)
-
-st.session_state["menu_principal_nav"] = menu_principal
-
-st.sidebar.markdown("---")
 if st.sidebar.button("Encerrar Sessão", use_container_width=True):
     st.session_state["autenticado"] = False
     st.rerun()
 
 # ==============================================================================
-# MÓDULOS DO SISTEMA
+# CABEÇALHO HERO E NAV HORIZONTAL NA DASHBOARD
+# ==============================================================================
+banner_centralizado_html = (
+    '<div class="hero-banner">'
+    f'{logo_banner_html}'
+    '<div class="hero-title">MICRO FOX SOLUÇÕES EM TI</div>'
+    '<div class="hero-subtitle">Sistema Integrado de Ordens de Serviço e Propostas Comerciais</div>'
+    '</div>'
+)
+st.markdown(banner_centralizado_html, unsafe_allow_html=True)
+
+# NAVEGAÇÃO HORIZONTAL VIA ABAS
+tab_dash, tab_criar_os, tab_cons_os, tab_criar_orc, tab_cons_orc, tab_clientes, tab_catalogo = st.tabs([
+    "Painel Geral",
+    "Criar O.S.",
+    "Consultar O.S.",
+    "Criar Orçamento",
+    "Consultar Orçamento",
+    "Base Clientes",
+    "Catálogo"
+])
+
+# ==============================================================================
+# MÓDULOS EMBUTIDOS NAS ABAS HORIZONTAIS
 # ==============================================================================
 
-# --- DASHBOARD ---
-if menu_principal == "Painel de Controle (Dashboard)":
-    banner_centralizado_html = (
-        '<div class="hero-banner">'
-        f'{logo_banner_html}'
-        '<div class="hero-title">MICRO FOX SOLUÇÕES EM TI</div>'
-        '<div class="hero-subtitle">Sistema Integrado de Ordens de Serviço e Propostas Comerciais</div>'
-        '</div>'
-    )
-    st.markdown(banner_centralizado_html, unsafe_allow_html=True)
-    st.caption("Indicadores gerais e atalhos rápidos de navegação")
+# --- ABA 1: PAINEL GERAL (DASHBOARD) ---
+with tab_dash:
+    st.caption("Indicadores gerais e resumo financeiro do sistema")
 
     tot_os = cursor.execute("SELECT COUNT(*) FROM ordens_servico").fetchone()[0]
     fat_os = cursor.execute("SELECT SUM(val_total) FROM ordens_servico").fetchone()[0] or 0.0
@@ -398,27 +408,19 @@ if menu_principal == "Painel de Controle (Dashboard)":
 
     with col_m1:
         st.markdown('<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Total de O.S.</div>', unsafe_allow_html=True)
-        if st.button(f"{tot_os} O.S.", key="btn_dash_tot_os", use_container_width=True):
-            st.session_state["menu_principal_nav"] = "Consultar / Imprimir O.S."
-            st.rerun()
+        st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>{tot_os} O.S.</h3>", unsafe_allow_html=True)
 
     with col_m2:
         st.markdown('<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Faturamento O.S.</div>', unsafe_allow_html=True)
-        if st.button(f"R$ {float(fat_os):,.2f}", key="btn_dash_fat_os", use_container_width=True):
-            st.session_state["menu_principal_nav"] = "Consultar / Imprimir O.S."
-            st.rerun()
+        st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>R$ {float(fat_os):,.2f}</h3>", unsafe_allow_html=True)
 
     with col_m3:
         st.markdown('<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Total Orçamentos</div>', unsafe_allow_html=True)
-        if st.button(f"{tot_orc} Propostas", key="btn_dash_tot_orc", use_container_width=True):
-            st.session_state["menu_principal_nav"] = "Consultar / Imprimir Orçamento"
-            st.rerun()
+        st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>{tot_orc} Propostas</h3>", unsafe_allow_html=True)
 
     with col_m4:
         st.markdown('<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Aprovados</div>', unsafe_allow_html=True)
-        if st.button(f"R$ {float(fat_orc):,.2f}", key="btn_dash_fat_orc", use_container_width=True):
-            st.session_state["menu_principal_nav"] = "Consultar / Imprimir Orçamento"
-            st.rerun()
+        st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>R$ {float(fat_orc):,.2f}</h3>", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     col_t1, col_t2 = st.columns(2)
@@ -439,8 +441,8 @@ if menu_principal == "Painel de Controle (Dashboard)":
         """, conn)
         st.dataframe(df_ultimos_orc, use_container_width=True)
 
-# --- CRIAR O.S. ---
-elif menu_principal == "Criar Ordem de Serviço (O.S.)":
+# --- ABA 2: CRIAR O.S. ---
+with tab_criar_os:
     st.caption("Cadastre novas ordens de serviço de Entrada ou Saída")
 
     if "cli_data" not in st.session_state:
@@ -454,7 +456,7 @@ elif menu_principal == "Criar Ordem de Serviço (O.S.)":
     opcoes_clientes = ["-- Novo Cliente / Preenchimento Manual --"] + [f"{c[1]} | {c[2] or 'Sem CPF/CNPJ'}" for c in lista_clientes]
 
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    cliente_selecionado = st.selectbox("Selecionar Cliente Cadastrado:", opcoes_clientes)
+    cliente_selecionado = st.selectbox("Selecionar Cliente Cadastrado:", opcoes_clientes, key="os_cli_select")
     
     if cliente_selecionado != "-- Novo Cliente / Preenchimento Manual --":
         idx = opcoes_clientes.index(cliente_selecionado) - 1
@@ -467,9 +469,9 @@ elif menu_principal == "Criar Ordem de Serviço (O.S.)":
 
     st.markdown("---")
     col_b1, col_b2, col_b3 = st.columns([2, 1, 1])
-    doc_digitado = col_b1.text_input("Buscar por CPF / CNPJ:", value=st.session_state["cli_data"]["cpf_cnpj"])
+    doc_digitado = col_b1.text_input("Buscar por CPF / CNPJ:", value=st.session_state["cli_data"]["cpf_cnpj"], key="os_doc_input")
     
-    if col_b2.button("Buscar CPF/CNPJ"):
+    if col_b2.button("Buscar CPF/CNPJ", key="btn_os_busca_doc"):
         doc_limpo = re.sub(r'\D', '', doc_digitado)
         if doc_limpo:
             cursor.execute("""
@@ -501,7 +503,7 @@ elif menu_principal == "Criar Ordem de Serviço (O.S.)":
                 else:
                     st.warning("CPF não localizado na base de dados.")
                     
-    if col_b3.button("Limpar Dados"):
+    if col_b3.button("Limpar Dados", key="btn_os_limpar"):
         st.session_state["cli_data"] = {"id": None, "nome": "", "cpf_cnpj": "", "tel": "", "contato": "", "end": "", "bairro": "", "cidade": "BRASÍLIA", "uf": "DF"}
         st.rerun()
 
@@ -510,11 +512,11 @@ elif menu_principal == "Criar Ordem de Serviço (O.S.)":
 
     col_loc1, col_loc2 = st.columns([1, 3])
     uf_index = LISTA_UFS.index(c_data["uf"]) if c_data["uf"] in LISTA_UFS else 0
-    uf_selecionada = col_loc1.selectbox("UF do Cliente *", LISTA_UFS, index=uf_index)
+    uf_selecionada = col_loc1.selectbox("UF do Cliente *", LISTA_UFS, index=uf_index, key="os_uf_sel")
     
     lista_cidades_uf = buscar_cidades_por_uf(uf_selecionada)
     cidade_index = lista_cidades_uf.index(c_data["cidade"]) if c_data["cidade"] in lista_cidades_uf else 0
-    cidade_selecionada = col_loc2.selectbox("Cidade do Cliente *", lista_cidades_uf, index=cidade_index)
+    cidade_selecionada = col_loc2.selectbox("Cidade do Cliente *", lista_cidades_uf, index=cidade_index, key="os_cid_sel")
 
     with st.form("form_os_completa"):
         st.subheader("1. Identificação da Ordem de Serviço")
@@ -618,17 +620,17 @@ elif menu_principal == "Criar Ordem de Serviço (O.S.)":
                 st.session_state["cli_data"] = {"id": None, "nome": "", "cpf_cnpj": "", "tel": "", "contato": "", "end": "", "bairro": "", "cidade": "BRASÍLIA", "uf": "DF"}
                 st.success(f"Ordem de Serviço ({tipo_doc_sel}) Nº {numero_os} registrada com sucesso.")
 
-# --- CONSULTAR O.S. ---
-elif menu_principal == "Consultar / Imprimir O.S.":
+# --- ABA 3: CONSULTAR O.S. ---
+with tab_cons_os:
     st.caption("Consulte e imprima os comprovantes de Entrada ou Saída de O.S.")
     
     df = pd.read_sql_query("SELECT id_os AS 'ID', numero_os AS 'Nº OS', cliente_nome AS 'Cliente', data_abertura AS 'Abertura', val_total AS 'Total (R$)', COALESCE(tipo_documento, 'Comprovante de Saída') AS 'Tipo' FROM ordens_servico ORDER BY id_os DESC", conn)
     st.dataframe(df, use_container_width=True)
     
     col_search1, col_search2 = st.columns([2, 1])
-    id_sel = col_search1.number_input("Digite o ID da O.S. desejada:", min_value=1, step=1)
+    id_sel = col_search1.number_input("Digite o ID da O.S. desejada:", min_value=1, step=1, key="os_id_input")
     
-    if col_search2.button("Visualizar O.S."):
+    if col_search2.button("Visualizar O.S.", key="btn_os_view"):
         cursor.execute("SELECT * FROM ordens_servico WHERE id_os = ?", (id_sel,))
         d = cursor.fetchone()
         
@@ -878,8 +880,8 @@ elif menu_principal == "Consultar / Imprimir O.S.":
         else:
             st.error("O.S. não encontrada.")
 
-# --- CRIAR ORÇAMENTO ---
-elif menu_principal == "Criar Orçamento Comercial":
+# --- ABA 4: CRIAR ORÇAMENTO ---
+with tab_criar_orc:
     st.caption("Monte e cadastre orçamentos comerciais completos")
 
     if "itens_orcamento" not in st.session_state:
@@ -890,7 +892,7 @@ elif menu_principal == "Criar Orçamento Comercial":
     opcoes_cli = ["-- Selecionar Cliente Cadastrado ou Digitar Abaixo --"] + [f"{c[1]} | {c[2] or 'Sem CPF'}" for c in lista_cli]
 
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    cli_sel = st.selectbox("Buscar Cliente Cadastrado:", opcoes_cli)
+    cli_sel = st.selectbox("Buscar Cliente Cadastrado:", opcoes_cli, key="orc_cli_sel")
     
     c_nome, c_cpf, c_tel, c_end, c_cid = "", "", "", "", "BRASÍLIA / DF"
     c_id = None
@@ -907,20 +909,20 @@ elif menu_principal == "Criar Orçamento Comercial":
     st.subheader("1. Identificação da Proposta")
     c_p1, c_p2, c_p3, c_p4 = st.columns(4)
     num_orc_sug = f"ORC{datetime.now().strftime('%Y%m%d%H%M')}"
-    numero_orc = c_p1.text_input("Número da Proposta *", num_orc_sug)
-    data_emissao = c_p2.date_input("Data de Emissão").strftime("%d/%m/%Y")
-    dias_validade = c_p3.number_input("Validade (Dias)", value=15, step=1)
+    numero_orc = c_p1.text_input("Número da Proposta *", num_orc_sug, key="orc_num_in")
+    data_emissao = c_p2.date_input("Data de Emissão", key="orc_date_em").strftime("%d/%m/%Y")
+    dias_validade = c_p3.number_input("Validade (Dias)", value=15, step=1, key="orc_val_days")
     data_validade = (datetime.now() + timedelta(days=dias_validade)).strftime("%d/%m/%Y")
-    c_p4.text_input("Válido até:", data_validade, disabled=True)
+    c_p4.text_input("Válido até:", data_validade, disabled=True, key="orc_val_dis")
 
     st.markdown("---")
     st.subheader("2. Dados do Cliente")
     c_c1, c_c2, c_c3 = st.columns(3)
-    cliente_nome = c_c1.text_input("Cliente / Razão Social *", value=c_nome)
-    cliente_cpf = c_c2.text_input("CPF / CNPJ", value=c_cpf)
-    cliente_tel = c_c3.text_input("Telefone / WhatsApp", value=c_tel)
+    cliente_nome = c_c1.text_input("Cliente / Razão Social *", value=c_nome, key="orc_cli_nome_in")
+    cliente_cpf = c_c2.text_input("CPF / CNPJ", value=c_cpf, key="orc_cli_cpf_in")
+    cliente_tel = c_c3.text_input("Telefone / WhatsApp", value=c_tel, key="orc_cli_tel_in")
 
-    equipamento_ref = st.text_input("Equipamento / Projeto de Referência", "Notebook / Computador")
+    equipamento_ref = st.text_input("Equipamento / Projeto de Referência", "Notebook / Computador", key="orc_eq_ref")
 
     st.markdown("---")
     st.subheader("3. Especificação dos Itens")
@@ -929,7 +931,7 @@ elif menu_principal == "Criar Orçamento Comercial":
     itens_cadastrados = cursor.fetchall()
     opcoes_cat = ["-- Digitar Manualmente Abaixo --"] + [f"[{i[1]}] {i[2]} - R$ {float(i[3] or 0):.2f}" for i in itens_cadastrados]
 
-    item_cat_sel = st.selectbox("Selecionar Item do Catálogo de Preços:", opcoes_cat)
+    item_cat_sel = st.selectbox("Selecionar Item do Catálogo de Preços:", opcoes_cat, key="orc_cat_sel")
     
     val_unit_sug = 0.0
     desc_sug = ""
@@ -943,12 +945,12 @@ elif menu_principal == "Criar Orçamento Comercial":
         val_unit_sug = float(i_cat[3] or 0.0)
 
     col_i1, col_i2, col_i3, col_i4, col_i5 = st.columns([1.5, 3, 1, 1.5, 1])
-    tipo_item = col_i1.selectbox("Tipo", ["Serviço", "Produto"], index=0 if tipo_sug == "Serviço" else 1)
-    desc_item = col_i2.text_input("Descrição do Item", value=desc_sug)
-    qtd_item = col_i3.number_input("Qtd", min_value=1.0, value=1.0, step=1.0)
-    vunit_item = col_i4.number_input("Valor Unitário (R$)", min_value=0.0, value=val_unit_sug, step=10.0)
+    tipo_item = col_i1.selectbox("Tipo", ["Serviço", "Produto"], index=0 if tipo_sug == "Serviço" else 1, key="orc_item_tipo")
+    desc_item = col_i2.text_input("Descrição do Item", value=desc_sug, key="orc_item_desc")
+    qtd_item = col_i3.number_input("Qtd", min_value=1.0, value=1.0, step=1.0, key="orc_item_qtd")
+    vunit_item = col_i4.number_input("Valor Unitário (R$)", min_value=0.0, value=val_unit_sug, step=10.0, key="orc_item_vunit")
     
-    if col_i5.button("Incluir"):
+    if col_i5.button("Incluir", key="btn_orc_incluir"):
         if desc_item and vunit_item > 0:
             tot_i = qtd_item * vunit_item
             st.session_state["itens_orcamento"].append({
@@ -964,7 +966,7 @@ elif menu_principal == "Criar Orçamento Comercial":
         st.markdown("##### Itens Inseridos na Proposta:")
         st.dataframe(df_itens, use_container_width=True)
         
-        if st.button("Remover Todos os Itens"):
+        if st.button("Remover Todos os Itens", key="btn_orc_clear_items"):
             st.session_state["itens_orcamento"] = []
             st.rerun()
 
@@ -973,16 +975,16 @@ elif menu_principal == "Criar Orçamento Comercial":
     st.markdown("---")
     st.subheader("4. Fechamento Comercial e Garantia")
     col_f1, col_f2, col_f3 = st.columns(3)
-    val_desconto = col_f1.number_input("Desconto (R$)", min_value=0.0, value=0.0, step=10.0)
-    cond_pagamento = col_f2.text_input("Condições de Pagamento", "PIX / Cartão até 3x sem juros")
-    prazo_entrega = col_f3.text_input("Prazo de Execução", "1 a 3 dias úteis após aprovação")
+    val_desconto = col_f1.number_input("Desconto (R$)", min_value=0.0, value=0.0, step=10.0, key="orc_desc_in")
+    cond_pagamento = col_f2.text_input("Condições de Pagamento", "PIX / Cartão até 3x sem juros", key="orc_cond_in")
+    prazo_entrega = col_f3.text_input("Prazo de Execução", "1 a 3 dias úteis após aprovação", key="orc_prazo_in")
 
-    obs_orcamento = st.text_area("Termos de Garantia e Condições de Serviços", value=TEXTO_GARANTIA_ORCAMENTO, height=140)
+    obs_orcamento = st.text_area("Termos de Garantia e Condições de Serviços", value=TEXTO_GARANTIA_ORCAMENTO, height=140, key="orc_obs_in")
 
     val_total_final = max(0.0, subtotal_orc - val_desconto)
     st.success(f"VALOR TOTAL CALCULADO: R$ {val_total_final:.2f}")
 
-    if st.button("SALVAR E EMITIR PROPOSTA"):
+    if st.button("SALVAR E EMITIR PROPOSTA", key="btn_orc_salvar"):
         if not cliente_nome or not numero_orc:
             st.error("Preencha ao menos o Nome do Cliente e o Número do Orçamento.")
         elif not st.session_state["itens_orcamento"]:
@@ -1011,8 +1013,8 @@ elif menu_principal == "Criar Orçamento Comercial":
             st.session_state["itens_orcamento"] = []
             st.success(f"Proposta Comercial Nº {numero_orc} salva com sucesso.")
 
-# --- CONSULTAR ORÇAMENTO ---
-elif menu_principal == "Consultar / Imprimir Orçamento":
+# --- ABA 5: CONSULTAR ORÇAMENTO ---
+with tab_cons_orc:
     st.caption("Consulte e imprima orçamentos comerciais em PDF")
 
     df_busca = pd.read_sql_query("""
@@ -1023,9 +1025,9 @@ elif menu_principal == "Consultar / Imprimir Orçamento":
     st.dataframe(df_busca, use_container_width=True)
 
     col_s1, col_s2 = st.columns([2, 1])
-    id_orc_sel = col_s1.number_input("Digite o ID do Orçamento para visualizar:", min_value=1, step=1)
+    id_orc_sel = col_s1.number_input("Digite o ID do Orçamento para visualizar:", min_value=1, step=1, key="orc_id_cons_in")
 
-    if col_s2.button("Visualizar Orçamento"):
+    if col_s2.button("Visualizar Orçamento", key="btn_orc_view"):
         cursor.execute("SELECT * FROM orcamentos WHERE id_orcamento = ?", (id_orc_sel,))
         orc = cursor.fetchone()
 
@@ -1164,8 +1166,8 @@ elif menu_principal == "Consultar / Imprimir Orçamento":
         else:
             st.error("Orçamento não encontrado.")
 
-# --- BASE DE CLIENTES ---
-elif menu_principal == "Base de Clientes":
+# --- ABA 6: BASE DE CLIENTES ---
+with tab_clientes:
     st.caption("Consulte a base de clientes cadastrados no sistema")
     df_clientes = pd.read_sql_query("""
         SELECT id_cliente AS 'ID', nome AS 'Nome / Razão Social', cpf_cnpj AS 'CPF/CNPJ', 
@@ -1174,8 +1176,8 @@ elif menu_principal == "Base de Clientes":
     """, conn)
     st.dataframe(df_clientes, use_container_width=True)
 
-# --- CATÁLOGO ---
-elif menu_principal == "Catálogo de Produtos e Serviços":
+# --- ABA 7: CATÁLOGO DE PRODUTOS E SERVIÇOS ---
+with tab_catalogo:
     st.caption("Cadastre produtos e serviços para reutilização ágil")
 
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
