@@ -224,7 +224,7 @@ if not st.session_state["autenticado"]:
         card_html = (
             '<div style="text-align: center; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155;">'
             f'{logo_login_html}'
-            '<h2 style="color: #f97316; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">MICRO FOX SOLUÇÕES EM TI</h2>'
+            '<h2 style="color: #f97316; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">MICRO FOX TI</h2>'
             '<p style="color: #94a3b8; font-size: 13px; margin-bottom: 0;">SISTEMA CORPORATIVO DE O.S. E ORÇAMENTOS</p>'
             '</div>'
         )
@@ -234,7 +234,7 @@ if not st.session_state["autenticado"]:
         
         with st.form("form_login"):
             usuario = st.text_input("Usuário de Acesso", placeholder="Ex: admin")
-            senha = st.text_input("Senha", type="password", placeholder="*******")
+            senha = st.text_input("Senha", type="password", placeholder="••••••••")
             btn_entrar = st.form_submit_button("ACESSAR O SISTEMA", use_container_width=True)
             
             if btn_entrar:
@@ -375,7 +375,6 @@ banner_centralizado_html = (
 )
 st.markdown(banner_centralizado_html, unsafe_allow_html=True)
 
-# BARRA DE BOTÕES COM LARGURAS AJUSTADAS PARA "CONSULTAR ORÇAMENTO" FICAR EM 1 LINHA
 c_nav1, c_nav2, c_nav3, c_nav4, c_nav5, c_nav6, c_nav7 = st.columns([1, 1, 1.1, 1.1, 1.35, 1, 1])
 
 if c_nav1.button("Painel Geral", key="btn_nav_dash"):
@@ -1184,9 +1183,69 @@ elif pagina == "Consultar Orçamento":
         else:
             st.error("Orçamento não encontrado.")
 
-# --- BASE DE CLIENTES ---
+# --- BASE DE CLIENTES (COM EDIÇÃO E EXCLUSÃO) ---
 elif pagina == "Base Clientes":
-    st.caption("Consulte a base de clientes cadastrados no sistema")
+    st.caption("Consulte, edite ou exclua clientes cadastrados no sistema")
+    
+    cursor.execute("SELECT id_cliente, nome, cpf_cnpj, telefone, contato, endereco, bairro, cidade, uf FROM clientes ORDER BY nome ASC")
+    todos_clientes = cursor.fetchall()
+    
+    opcoes_edicao_cli = ["-- Selecione um Cliente para Editar/Excluir --"] + [f"ID {c[0]} - {c[1]} | {c[2] or 'Sem CPF/CNPJ'}" for c in todos_clientes]
+    
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.subheader("Editar Dados de um Cliente")
+    cli_edit_sel = st.selectbox("Buscar Cliente para Edição:", opcoes_edicao_cli, key="select_cli_edit")
+    
+    if cli_edit_sel != "-- Selecione um Cliente para Editar/Excluir --":
+        idx_c = opcoes_edicao_cli.index(cli_edit_sel) - 1
+        d_edit = todos_clientes[idx_c]
+        
+        with st.form("form_edit_cliente"):
+            col_ec1, col_ec2 = st.columns(2)
+            edit_nome = col_ec1.text_input("Nome / Razão Social *", value=d_edit[1] or "")
+            edit_cpf = col_ec2.text_input("CPF / CNPJ", value=d_edit[2] or "")
+            
+            col_ec3, col_ec4 = st.columns(2)
+            edit_tel = col_ec3.text_input("Telefone / WhatsApp", value=d_edit[3] or "")
+            edit_contato = col_ec4.text_input("Pessoa de Contato", value=d_edit[4] or "")
+            
+            col_ec5, col_ec6 = st.columns([2, 1])
+            edit_end = col_ec5.text_input("Endereço Completo", value=d_edit[5] or "")
+            edit_bairro = col_ec6.text_input("Bairro", value=d_edit[6] or "")
+            
+            col_ec7, col_ec8 = st.columns(2)
+            uf_atual = d_edit[8] if d_edit[8] in LISTA_UFS else "DF"
+            edit_uf = col_ec7.selectbox("UF", LISTA_UFS, index=LISTA_UFS.index(uf_atual))
+            
+            cidades_uf_edit = buscar_cidades_por_uf(edit_uf)
+            cid_atual = d_edit[7] if d_edit[7] in cidades_uf_edit else (cidades_uf_edit[0] if cidades_uf_edit else "BRASÍLIA")
+            edit_cid = col_ec8.selectbox("Cidade", cidades_uf_edit, index=cidades_uf_edit.index(cid_atual) if cid_atual in cidades_uf_edit else 0)
+            
+            col_btn_edit1, col_btn_edit2 = st.columns(2)
+            btn_salvar_cli = col_btn_edit1.form_submit_button("Salvar Alterações do Cliente")
+            btn_deletar_cli = col_btn_edit2.form_submit_button("Excluir Cliente")
+            
+            if btn_salvar_cli:
+                if edit_nome:
+                    cursor.execute("""
+                        UPDATE clientes SET nome=?, cpf_cnpj=?, telefone=?, contato=?, endereco=?, bairro=?, cidade=?, uf=?
+                        WHERE id_cliente=?
+                    """, (edit_nome, edit_cpf, edit_tel, edit_contato, edit_end, edit_bairro, edit_cid, edit_uf, d_edit[0]))
+                    conn.commit()
+                    st.success("Dados do cliente atualizados com sucesso.")
+                    st.rerun()
+                else:
+                    st.error("O campo Nome é obrigatório.")
+                    
+            if btn_deletar_cli:
+                cursor.execute("DELETE FROM clientes WHERE id_cliente=?", (d_edit[0],))
+                conn.commit()
+                st.success("Cliente removido com sucesso.")
+                st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.subheader("Clientes Cadastrados")
     df_clientes = pd.read_sql_query("""
         SELECT id_cliente AS 'ID', nome AS 'Nome / Razão Social', cpf_cnpj AS 'CPF/CNPJ', 
                telefone AS 'Telefone', contato AS 'Contato', bairro AS 'Bairro', cidade AS 'Cidade', uf AS 'UF'
@@ -1194,9 +1253,9 @@ elif pagina == "Base Clientes":
     """, conn)
     st.dataframe(df_clientes, use_container_width=True)
 
-# --- CATÁLOGO DE PRODUTOS E SERVIÇOS ---
+# --- CATÁLOGO DE PRODUTOS E SERVIÇOS (COM EDIÇÃO E EXCLUSÃO) ---
 elif pagina == "Catálogo":
-    st.caption("Cadastre produtos e serviços para reutilização ágil")
+    st.caption("Cadastre e edite produtos e serviços para reutilização ágil")
 
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.subheader("Novo Item no Catálogo")
@@ -1223,7 +1282,53 @@ elif pagina == "Catálogo":
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.subheader("Itens Cadastrados")
+    # --- SESSÃO DE EDIÇÃO/EXCLUSÃO DO CATÁLOGO ---
+    cursor.execute("SELECT id_item, tipo, descricao, preco_venda, estoque_qtd FROM itens_catalogo ORDER BY descricao ASC")
+    itens_cat_db = cursor.fetchall()
+
+    if itens_cat_db:
+        st.markdown('<div class="section-card">', unsafe_allow_html=True)
+        st.subheader("Editar Item Existente no Catálogo")
+        
+        opcoes_edit_cat = ["-- Selecione um Item para Editar/Excluir --"] + [f"ID {i[0]} - [{i[1]}] {i[2]} (R$ {float(i[3] or 0):.2f})" for i in itens_cat_db]
+        cat_item_sel = st.selectbox("Buscar Item do Catálogo:", opcoes_edit_cat, key="select_cat_edit")
+        
+        if cat_item_sel != "-- Selecione um Item para Editar/Excluir --":
+            idx_cat_edit = opcoes_edit_cat.index(cat_item_sel) - 1
+            item_edit = itens_cat_db[idx_cat_edit]
+            
+            with st.form("form_edit_item_cat"):
+                col_ecat1, col_ecat2, col_ecat3, col_ecat4 = st.columns([1, 2.5, 1, 1])
+                e_tipo = col_ecat1.selectbox("Tipo", ["Serviço", "Produto"], index=0 if item_edit[1] == "Serviço" else 1)
+                e_desc = col_ecat2.text_input("Descrição do Item *", value=item_edit[2] or "")
+                e_preco = col_ecat3.number_input("Preço de Venda (R$)", min_value=0.0, value=float(item_edit[3] or 0.0), step=10.0)
+                e_estq = col_ecat4.number_input("Qtd Estoque", min_value=0.0, value=float(item_edit[4] or 0.0), step=1.0)
+                
+                col_btn_c1, col_btn_c2 = st.columns(2)
+                btn_salvar_cat = col_btn_c1.form_submit_button("Salvar Alterações do Item")
+                btn_deletar_cat = col_btn_c2.form_submit_button("Excluir Item do Catálogo")
+                
+                if btn_salvar_cat:
+                    if e_desc:
+                        cursor.execute("""
+                            UPDATE itens_catalogo SET tipo=?, descricao=?, preco_venda=?, estoque_qtd=?
+                            WHERE id_item=?
+                        """, (e_tipo, e_desc, e_preco, e_estq, item_edit[0]))
+                        conn.commit()
+                        st.success("Item do catálogo atualizado com sucesso.")
+                        st.rerun()
+                    else:
+                        st.error("Informe a descrição do item.")
+                        
+                if btn_deletar_cat:
+                    cursor.execute("DELETE FROM itens_catalogo WHERE id_item=?", (item_edit[0],))
+                    conn.commit()
+                    st.success("Item excluído do catálogo com sucesso.")
+                    st.rerun()
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.subheader("Itens Cadastrados no Catálogo")
     df_cat = pd.read_sql_query("""
         SELECT id_item AS 'ID', tipo AS 'Tipo', descricao AS 'Descrição', 
                preco_venda AS 'Preço Venda (R$)', estoque_qtd AS 'Qtd Estoque'
