@@ -224,7 +224,7 @@ if not st.session_state["autenticado"]:
         card_html = (
             '<div style="text-align: center; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155;">'
             f'{logo_login_html}'
-            '<h2 style="color: #f97316; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">MICRO FOX TI</h2>'
+            '<h2 style="color: #f97316; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">MICRO FOX SOLUÇÕES EM TI</h2>'
             '<p style="color: #94a3b8; font-size: 13px; margin-bottom: 0;">SISTEMA CORPORATIVO DE O.S. E ORÇAMENTOS</p>'
             '</div>'
         )
@@ -234,7 +234,7 @@ if not st.session_state["autenticado"]:
         
         with st.form("form_login"):
             usuario = st.text_input("Usuário de Acesso", placeholder="Ex: admin")
-            senha = st.text_input("Senha", type="password", placeholder="••••••••")
+            senha = st.text_input("Senha", type="password", placeholder="*******")
             btn_entrar = st.form_submit_button("ACESSAR O SISTEMA", use_container_width=True)
             
             if btn_entrar:
