@@ -8,9 +8,10 @@ import requests
 import re
 import hashlib
 import hmac
+from PIL import Image, ImageDraw
 
 # ==============================================================================
-# 1. CARREGAMENTO ROBUSTO DA LOGO & FAVICON DA ABA DO NAVEGADOR
+# 1. CARREGAMENTO DA LOGO, ARREDONDAMENTO & FAVICON DA ABA DO NAVEGADOR
 # ==============================================================================
 diretorio_atual = os.path.dirname(os.path.abspath(__file__))
 extensoes_validas = ('.png', '.jpg', '.jpeg', '.webp', '.svg')
@@ -26,10 +27,36 @@ for raiz, diretorios, arquivos in os.walk(diretorio_atual):
     if caminho_logo_encontrado:
         break
 
-# Tratamento base64 / URL para exibição dos elementos HTML e Favicon
+# Função para arredondar a imagem para uso como Favicon
+def gerar_favicon_arredondado(caminho_imagem):
+    try:
+        img = Image.open(caminho_imagem).convert("RGBA")
+        tamanho = min(img.size)
+        
+        # Recorta um quadrado central
+        left = (img.width - tamanho) / 2
+        top = (img.height - tamanho) / 2
+        right = (img.width + tamanho) / 2
+        bottom = (img.height + tamanho) / 2
+        img = img.crop((left, top, right, bottom))
+        
+        # Cria uma máscara circular
+        mask = Image.new('L', (tamanho, tamanho), 0)
+        draw = ImageDraw.Draw(mask)
+        draw.ellipse((0, 0, tamanho, tamanho), fill=255)
+        
+        # Aplica o recorte circular
+        img_arredondada = Image.new('RGBA', (tamanho, tamanho), (0, 0, 0, 0))
+        img_arredondada.paste(img, (0, 0), mask=mask)
+        return img_arredondada
+    except Exception:
+        return None
+
+favicon_img = None
 src_data = None
 
 if caminho_logo_encontrado and os.path.exists(caminho_logo_encontrado):
+    favicon_img = gerar_favicon_arredondado(caminho_logo_encontrado)
     try:
         with open(caminho_logo_encontrado, "rb") as image_file:
             logo_b64 = base64.b64encode(image_file.read()).decode()
@@ -40,14 +67,13 @@ if caminho_logo_encontrado and os.path.exists(caminho_logo_encontrado):
     except Exception:
         src_data = None
 
-# URL de fallback caso a imagem física não seja encontrada no repositório
 if not src_data:
     src_data = "https://cdn-icons-png.flaticon.com/512/3659/3659898.png"
 
-# CONFIGURAÇÃO DA PÁGINA (Adiciona a Logo na aba do navegador)
+# CONFIGURAÇÃO DA PÁGINA (Favicon arredondado na aba do navegador)
 st.set_page_config(
     page_title="Micro Fox Soluções em TI - Sistema Integrado de Gestão", 
-    page_icon=caminho_logo_encontrado if (caminho_logo_encontrado and os.path.exists(caminho_logo_encontrado)) else src_data,
+    page_icon=favicon_img if favicon_img else "🛠️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
