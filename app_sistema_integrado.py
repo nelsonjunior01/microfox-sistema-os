@@ -10,7 +10,7 @@ import hashlib
 import hmac
 
 # ==============================================================================
-# 1. CONFIGURAÇÃO DA PÁGINA WEB & FAVICON
+# 1. CONFIGURAÇÃO DA PÁGINA WEB
 # ==============================================================================
 diretorio_atual = os.path.dirname(os.path.abspath(__file__))
 candidatos_logo = ["logo.png", "logo.jpg", "logo.jpeg", "LOGO.PNG", "LOGO.JPG"]
@@ -24,15 +24,13 @@ for nome_img in candidatos_logo:
 
 st.set_page_config(
     page_title="Micro Fox Soluções em TI - Sistema Integrado de Gestão", 
-    page_icon=caminho_logo_encontrado if caminho_logo_encontrado else "🛠️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ==============================================================================
-# 2. AUTENTICAÇÃO E SEGURANÇA (ST.SECRETS + SHA-256 + FALLBACK SEGURO)
+# 2. AUTENTICAÇÃO E SEGURANÇA (ST.SECRETS + FALLBACK SEGURO)
 # ==============================================================================
-# Tenta obter as credenciais do Secrets, caso contrário ativa o Fallback padrão seguro
 try:
     USUARIO_CORRETO = str(st.secrets["auth"]["username"]).strip().lower()
     if "password" in st.secrets["auth"]:
@@ -47,7 +45,6 @@ except Exception:
     MODO_AUTENTICACAO = "direta"
 
 def validar_credenciais(usuario_digitado, senha_digitada):
-    """Valida o usuário e a senha protegendo contra timing attacks."""
     if not usuario_digitado or not senha_digitada:
         return False
     
@@ -67,7 +64,7 @@ if "autenticado" not in st.session_state:
 # ==============================================================================
 # 3. TRATAMENTO HTML E EMBED DA LOGO
 # ==============================================================================
-logo_html, logo_banner_html, watermark_html = "", "", ""
+logo_html, logo_banner_html, watermark_html, logo_login_html = "", "", "", ""
 
 if caminho_logo_encontrado:
     with open(caminho_logo_encontrado, "rb") as image_file:
@@ -75,10 +72,8 @@ if caminho_logo_encontrado:
         src_data = f"data:image/png;base64,{logo_b64}"
         
         logo_html = f'<img src="{src_data}" style="max-height: 65px; max-width: 160px; margin-right: 15px;"/>'
-        logo_banner_html = (
-            f'<img src="{src_data}" '
-            'style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #38bdf8; margin-bottom: 5px;"/>'
-        )
+        logo_banner_html = f'<img src="{src_data}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #38bdf8; margin-bottom: 10px;"/>'
+        logo_login_html = f'<img src="{src_data}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 2px solid #38bdf8; margin-bottom: 15px;"/>'
         watermark_html = f'<img src="{src_data}" class="watermark"/>'
 
 # --- TEXTOS PADRÃO ---
@@ -103,12 +98,7 @@ st.markdown("""
     div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
         border-radius: 8px !important; border: 1px solid #334155 !important; background-color: #ffffff !important;
     }
-    .metric-card {
-        background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); text-align: center;
-    }
     .metric-title { font-size: 13px; color: #94a3b8 !important; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .metric-value { font-size: 24px; color: #38bdf8 !important; font-weight: 700; margin-top: 5px; }
     .stButton > button {
         background-color: #2563eb !important; color: #ffffff !important; font-weight: 700 !important;
         border-radius: 8px !important; padding: 10px 24px !important; border: none !important; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
@@ -177,7 +167,7 @@ if not st.session_state["autenticado"]:
         
         card_html = (
             '<div style="text-align: center; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155;">'
-            f'{logo_banner_html}'
+            f'{logo_login_html}'
             '<h2 style="color: #38bdf8; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">MICRO FOX TI</h2>'
             '<p style="color: #94a3b8; font-size: 13px; margin-bottom: 0;">SISTEMA CORPORATIVO DE O.S. E ORÇAMENTOS</p>'
             '</div>'
@@ -189,7 +179,7 @@ if not st.session_state["autenticado"]:
         with st.form("form_login"):
             usuario = st.text_input("Usuário de Acesso", placeholder="Ex: admin")
             senha = st.text_input("Senha", type="password", placeholder="••••••••")
-            btn_entrar = st.form_submit_button("🔒 ACESSAR O SISTEMA", use_container_width=True)
+            btn_entrar = st.form_submit_button("ACESSAR O SISTEMA", use_container_width=True)
             
             if btn_entrar:
                 if validar_credenciais(usuario, senha):
@@ -197,7 +187,7 @@ if not st.session_state["autenticado"]:
                     st.success("Autenticado com sucesso.")
                     st.rerun()
                 else:
-                    st.error("⚠️ Usuário ou senha incorretos.")
+                    st.error("Usuário ou senha incorretos.")
     st.stop()
 
 # ==============================================================================
@@ -342,22 +332,21 @@ if st.sidebar.button("Encerrar Sessão", use_container_width=True):
     st.session_state["autenticado"] = False
     st.rerun()
 
-# --- BANNER SUPERIOR CENTRALIZADO ---
-banner_centralizado_html = (
-    '<div class="hero-banner">'
-    f'{logo_banner_html}'
-    '<div class="hero-title">MICRO FOX SOLUÇÕES EM TI</div>'
-    '<div class="hero-subtitle">Sistema Integrado de Ordens de Serviço e Propostas Comerciais</div>'
-    '</div>'
-)
-st.markdown(banner_centralizado_html, unsafe_allow_html=True)
-
 # ==============================================================================
 # MÓDULOS DO SISTEMA
 # ==============================================================================
 
 # --- DASHBOARD ---
 if menu_principal == "Painel de Controle (Dashboard)":
+    # Banner com a Logo centralizada no topo do Painel
+    banner_centralizado_html = (
+        '<div class="hero-banner">'
+        f'{logo_banner_html}'
+        '<div class="hero-title">MICRO FOX SOLUÇÕES EM TI</div>'
+        '<div class="hero-subtitle">Sistema Integrado de Ordens de Serviço e Propostas Comerciais</div>'
+        '</div>'
+    )
+    st.markdown(banner_centralizado_html, unsafe_allow_html=True)
     st.caption("Indicadores gerais e atalhos rápidos de navegação")
 
     tot_os = cursor.execute("SELECT COUNT(*) FROM ordens_servico").fetchone()[0]
@@ -368,26 +357,26 @@ if menu_principal == "Painel de Controle (Dashboard)":
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
 
     with col_m1:
-        st.markdown(f'<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Total de O.S.</div>', unsafe_allow_html=True)
-        if st.button(f"📋 {tot_os} O.S.", key="btn_dash_tot_os", use_container_width=True):
+        st.markdown('<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Total de O.S.</div>', unsafe_allow_html=True)
+        if st.button(f"{tot_os} O.S.", key="btn_dash_tot_os", use_container_width=True):
             st.session_state["menu_principal_nav"] = "Consultar / Imprimir O.S."
             st.rerun()
 
     with col_m2:
-        st.markdown(f'<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Faturamento O.S.</div>', unsafe_allow_html=True)
-        if st.button(f"💰 R$ {float(fat_os):,.2f}", key="btn_dash_fat_os", use_container_width=True):
+        st.markdown('<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Faturamento O.S.</div>', unsafe_allow_html=True)
+        if st.button(f"R$ {float(fat_os):,.2f}", key="btn_dash_fat_os", use_container_width=True):
             st.session_state["menu_principal_nav"] = "Consultar / Imprimir O.S."
             st.rerun()
 
     with col_m3:
-        st.markdown(f'<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Total Orçamentos</div>', unsafe_allow_html=True)
-        if st.button(f"📄 {tot_orc} Propostas", key="btn_dash_tot_orc", use_container_width=True):
+        st.markdown('<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Total Orçamentos</div>', unsafe_allow_html=True)
+        if st.button(f"{tot_orc} Propostas", key="btn_dash_tot_orc", use_container_width=True):
             st.session_state["menu_principal_nav"] = "Consultar / Imprimir Orçamento"
             st.rerun()
 
     with col_m4:
-        st.markdown(f'<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Aprovados</div>', unsafe_allow_html=True)
-        if st.button(f"✅ R$ {float(fat_orc):,.2f}", key="btn_dash_fat_orc", use_container_width=True):
+        st.markdown('<div class="metric-title" style="text-align: center; margin-bottom: 5px;">Aprovados</div>', unsafe_allow_html=True)
+        if st.button(f"R$ {float(fat_orc):,.2f}", key="btn_dash_fat_orc", use_container_width=True):
             st.session_state["menu_principal_nav"] = "Consultar / Imprimir Orçamento"
             st.rerun()
 
@@ -728,7 +717,7 @@ elif menu_principal == "Consultar / Imprimir O.S.":
                     <div class="page-container">
                         {gerar_via_entrada("VIA DO CLIENTE")}
                         <div class="cut-line">
-                            <span>✂ DESTACAR AQUI — VIA DA EMPRESA ABAIXO ✂</span>
+                            <span>DESTACAR AQUI — VIA DA EMPRESA ABAIXO</span>
                         </div>
                         {gerar_via_entrada("VIA DA EMPRESA")}
                     </div>
