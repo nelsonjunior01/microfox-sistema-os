@@ -33,6 +33,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Estilização visual customizada
+st.markdown("""
+    <style>
+        .stButton button {
+            font-weight: bold;
+            border-radius: 6px;
+        }
+        div[data-testid="stMetricValue"] {
+            font-size: 24px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # ==============================================================================
 # 2. TRATAMENTO HTML E EMBED DE IMAGEM DA LOGO
 # ==============================================================================
