@@ -149,10 +149,17 @@ with engine.begin() as conn:
     '''))
 
 # ==============================================================================
-# 4. AUTENTICAÇÃO E SEGURANÇA (TEXTO DIRETO)
+# 4. AUTENTICAÇÃO E SEGURANÇA (COM ST.SECRETS E CRIPTOGRAFIA SHA-256)
 # ==============================================================================
-USUARIO_CORRETO = "admin"
-SENHA_CORRETA = "MFoxinfo@123"  # Altere aqui para a senha desejada em texto puro
+
+# Busca credenciais das variáveis seguras do ambiente (Streamlit Secrets)
+USUARIO_CORRETO = st.secrets.get("auth", {}).get("username", "admin")
+HASH_SENHA_CORRETA = st.secrets.get("auth", {}).get("password_hash", "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918")
+
+def verificar_senha(senha_digitada, hash_alvo):
+    """Compara a senha digitada em hash SHA-256 de forma segura contra tempo de execução"""
+    hash_digitado = hashlib.sha256(senha_digitada.encode()).hexdigest()
+    return hmac.compare_digest(hash_digitado, hash_alvo)
 
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
@@ -170,15 +177,20 @@ if not st.session_state["autenticado"]:
             </div>
         ''', unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
+        
         with st.form("form_login"):
-            usuario = st.text_input("Usuário de Acesso")
-            senha = st.text_input("Senha", type="password")
-            if st.form_submit_button("ACESSAR SISTEMA", use_container_width=True):
-                if usuario == USUARIO_CORRETO and senha == SENHA_CORRETA:
+            usuario = st.text_input("Usuário de Acesso", placeholder="Digite seu usuário")
+            senha = st.text_input("Senha de Acesso", type="password", placeholder="••••••••")
+            
+            btn_login = st.form_submit_button("🔒 ACESSAR SISTEMA", use_container_width=True)
+            
+            if btn_login:
+                if usuario == USUARIO_CORRETO and verificar_senha(senha, HASH_SENHA_CORRETA):
                     st.session_state["autenticado"] = True
+                    st.success("Autenticado com sucesso!")
                     st.rerun()
                 else:
-                    st.error("Usuário ou senha incorretos.")
+                    st.error("⚠️ Usuário ou senha incorretos.")
     st.stop()
 
 # ==============================================================================
