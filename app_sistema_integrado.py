@@ -10,13 +10,13 @@ import hashlib
 import hmac
 
 # ==============================================================================
-# 1. CONFIGURAÇÃO DA PÁGINA WEB & CARREGAMENTO ROBUSTO DA LOGO
+# 1. CARREGAMENTO ROBUSTO DA LOGO & FAVICON DA ABA DO NAVEGADOR
 # ==============================================================================
 diretorio_atual = os.path.dirname(os.path.abspath(__file__))
 extensoes_validas = ('.png', '.jpg', '.jpeg', '.webp', '.svg')
 caminho_logo_encontrado = None
 
-# 1. Busca recursiva no repositório por qualquer arquivo com 'logo' no nome
+# Busca recursiva no repositório por qualquer arquivo com 'logo' no nome
 for raiz, diretorios, arquivos in os.walk(diretorio_atual):
     for arquivo in arquivos:
         nome_lower = arquivo.lower()
@@ -26,7 +26,7 @@ for raiz, diretorios, arquivos in os.walk(diretorio_atual):
     if caminho_logo_encontrado:
         break
 
-# Tratamento base64 / URL para exibição do elemento HTML
+# Tratamento base64 / URL para exibição dos elementos HTML e Favicon
 src_data = None
 
 if caminho_logo_encontrado and os.path.exists(caminho_logo_encontrado):
@@ -41,22 +41,22 @@ if caminho_logo_encontrado and os.path.exists(caminho_logo_encontrado):
         src_data = None
 
 # URL de fallback caso a imagem física não seja encontrada no repositório
-# (Caso queira, você pode substituir o link abaixo pelo link exato da sua imagem)
 if not src_data:
     src_data = "https://cdn-icons-png.flaticon.com/512/3659/3659898.png"
+
+# CONFIGURAÇÃO DA PÁGINA (Adiciona a Logo na aba do navegador)
+st.set_page_config(
+    page_title="Micro Fox Soluções em TI - Sistema Integrado de Gestão", 
+    page_icon=caminho_logo_encontrado if (caminho_logo_encontrado and os.path.exists(caminho_logo_encontrado)) else src_data,
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # HTMLs pré-formatados da Logo
 logo_html = f'<img src="{src_data}" style="max-height: 65px; max-width: 160px; margin-right: 15px;"/>'
 logo_banner_html = f'<img src="{src_data}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #38bdf8; margin-bottom: 10px;"/>'
 logo_login_html = f'<img src="{src_data}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 2px solid #38bdf8; margin-bottom: 15px;"/>'
 watermark_html = f'<img src="{src_data}" class="watermark"/>'
-
-st.set_page_config(
-    page_title="Micro Fox Soluções em TI - Sistema Integrado de Gestão", 
-    page_icon="🛠️",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # ==============================================================================
 # 2. AUTENTICAÇÃO E SEGURANÇA (ST.SECRETS + FALLBACK SEGURO)
