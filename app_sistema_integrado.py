@@ -364,7 +364,7 @@ if st.sidebar.button("Encerrar Sessão", use_container_width=True):
     st.rerun()
 
 # ==============================================================================
-# HERO BANNER E MENU DE NAVEGAÇÃO EM BOTÕES HORIZONTAIS (LARGURAS OTIMIZADAS)
+# HERO BANNER E MENU DE NAVEGAÇÃO EM BOTÕES HORIZONTAIS
 # ==============================================================================
 banner_centralizado_html = (
     '<div class="hero-banner">'
@@ -1183,69 +1183,159 @@ elif pagina == "Consultar Orçamento":
         else:
             st.error("Orçamento não encontrado.")
 
-# --- BASE DE CLIENTES (COM EDIÇÃO E EXCLUSÃO) ---
+# --- BASE DE CLIENTES (CADASTRO, BUSCA POR CPF/CNPJ, EDIÇÃO E EXCLUSÃO) ---
 elif pagina == "Base Clientes":
-    st.caption("Consulte, edite ou exclua clientes cadastrados no sistema")
-    
-    cursor.execute("SELECT id_cliente, nome, cpf_cnpj, telefone, contato, endereco, bairro, cidade, uf FROM clientes ORDER BY nome ASC")
-    todos_clientes = cursor.fetchall()
-    
-    opcoes_edicao_cli = ["-- Selecione um Cliente para Editar/Excluir --"] + [f"ID {c[0]} - {c[1]} | {c[2] or 'Sem CPF/CNPJ'}" for c in todos_clientes]
-    
+    st.caption("Cadastre, consulte, edite ou exclua clientes do sistema")
+
+    if "novo_cli_data" not in st.session_state:
+        st.session_state["novo_cli_data"] = {
+            "nome": "", "cpf_cnpj": "", "tel": "", "contato": "", "end": "", "bairro": "", "cidade": "BRASÍLIA", "uf": "DF"
+        }
+
+    # --- SESSÃO 1: CADASTRAR NOVO CLIENTE COM BUSCA POR CPF/CNPJ ---
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.subheader("Editar Dados de um Cliente")
-    cli_edit_sel = st.selectbox("Buscar Cliente para Edição:", opcoes_edicao_cli, key="select_cli_edit")
+    st.subheader("Cadastrar Novo Cliente")
     
-    if cli_edit_sel != "-- Selecione um Cliente para Editar/Excluir --":
-        idx_c = opcoes_edicao_cli.index(cli_edit_sel) - 1
-        d_edit = todos_clientes[idx_c]
-        
-        with st.form("form_edit_cliente"):
-            col_ec1, col_ec2 = st.columns(2)
-            edit_nome = col_ec1.text_input("Nome / Razão Social *", value=d_edit[1] or "")
-            edit_cpf = col_ec2.text_input("CPF / CNPJ", value=d_edit[2] or "")
+    col_bcli1, col_bcli2, col_bcli3 = st.columns([2, 1, 1])
+    doc_busca_cli = col_bcli1.text_input("Buscar CPF/CNPJ para Pré-preenchimento:", value=st.session_state["novo_cli_data"]["cpf_cnpj"], key="cli_doc_busca_in")
+    
+    if col_bcli2.button("Buscar CPF/CNPJ", key="btn_cli_busca_doc"):
+        doc_limpo = re.sub(r'\D', '', doc_busca_cli)
+        if doc_limpo:
+            cursor.execute("""
+                SELECT id_cliente, nome, cpf_cnpj, telefone, contato, endereco, bairro, cidade, uf 
+                FROM clientes 
+                WHERE REPLACE(REPLACE(REPLACE(REPLACE(cpf_cnpj, '.', ''), '-', ''), '/', ''), ' ', '') = ?
+            """, (doc_limpo,))
+            cli_local = cursor.fetchone()
             
-            col_ec3, col_ec4 = st.columns(2)
-            edit_tel = col_ec3.text_input("Telefone / WhatsApp", value=d_edit[3] or "")
-            edit_contato = col_ec4.text_input("Pessoa de Contato", value=d_edit[4] or "")
-            
-            col_ec5, col_ec6 = st.columns([2, 1])
-            edit_end = col_ec5.text_input("Endereço Completo", value=d_edit[5] or "")
-            edit_bairro = col_ec6.text_input("Bairro", value=d_edit[6] or "")
-            
-            col_ec7, col_ec8 = st.columns(2)
-            uf_atual = d_edit[8] if d_edit[8] in LISTA_UFS else "DF"
-            edit_uf = col_ec7.selectbox("UF", LISTA_UFS, index=LISTA_UFS.index(uf_atual))
-            
-            cidades_uf_edit = buscar_cidades_por_uf(edit_uf)
-            cid_atual = d_edit[7] if d_edit[7] in cidades_uf_edit else (cidades_uf_edit[0] if cidades_uf_edit else "BRASÍLIA")
-            edit_cid = col_ec8.selectbox("Cidade", cidades_uf_edit, index=cidades_uf_edit.index(cid_atual) if cid_atual in cidades_uf_edit else 0)
-            
-            col_btn_edit1, col_btn_edit2 = st.columns(2)
-            btn_salvar_cli = col_btn_edit1.form_submit_button("Salvar Alterações do Cliente")
-            btn_deletar_cli = col_btn_edit2.form_submit_button("Excluir Cliente")
-            
-            if btn_salvar_cli:
-                if edit_nome:
-                    cursor.execute("""
-                        UPDATE clientes SET nome=?, cpf_cnpj=?, telefone=?, contato=?, endereco=?, bairro=?, cidade=?, uf=?
-                        WHERE id_cliente=?
-                    """, (edit_nome, edit_cpf, edit_tel, edit_contato, edit_end, edit_bairro, edit_cid, edit_uf, d_edit[0]))
-                    conn.commit()
-                    st.success("Dados do cliente atualizados com sucesso.")
-                    st.rerun()
+            if cli_local:
+                st.session_state["novo_cli_data"] = {
+                    "nome": cli_local[1] or "", "cpf_cnpj": cli_local[2] or "",
+                    "tel": cli_local[3] or "", "contato": cli_local[4] or "", "end": cli_local[5] or "",
+                    "bairro": cli_local[6] or "", "cidade": (cli_local[7] or "BRASÍLIA").upper(), "uf": (cli_local[8] or "DF").upper()
+                }
+                st.info(f"Cliente já cadastrado encontrado: {cli_local[1]}")
+            else:
+                if len(doc_limpo) == 14:
+                    dados_api = consultar_cnpj_api(doc_limpo)
+                    if dados_api:
+                        st.session_state["novo_cli_data"] = {
+                            "nome": dados_api["nome"], "cpf_cnpj": doc_busca_cli,
+                            "tel": dados_api["telefone"], "contato": "", "end": dados_api["endereco"],
+                            "bairro": dados_api["bairro"], "cidade": dados_api["cidade"], "uf": dados_api["uf"]
+                        }
+                        st.success("Dados do CNPJ preenchidos automaticamente via Receita Federal!")
+                    else:
+                        st.warning("CNPJ não localizado na consulta pública.")
                 else:
-                    st.error("O campo Nome é obrigatório.")
+                    st.warning("CPF não encontrado na base local. Preencha os dados manualmente abaixo.")
                     
-            if btn_deletar_cli:
-                cursor.execute("DELETE FROM clientes WHERE id_cliente=?", (d_edit[0],))
+    if col_bcli3.button("Limpar Formulário", key="btn_cli_limpar_form"):
+        st.session_state["novo_cli_data"] = {"nome": "", "cpf_cnpj": "", "tel": "", "contato": "", "end": "", "bairro": "", "cidade": "BRASÍLIA", "uf": "DF"}
+        st.rerun()
+
+    nc_data = st.session_state["novo_cli_data"]
+
+    with st.form("form_cad_novo_cliente"):
+        col_nc1, col_nc2 = st.columns(2)
+        cad_nome = col_nc1.text_input("Nome / Razão Social *", value=nc_data["nome"])
+        cad_cpf = col_nc2.text_input("CPF / CNPJ", value=nc_data["cpf_cnpj"])
+        
+        col_nc3, col_nc4 = st.columns(2)
+        cad_tel = col_nc3.text_input("Telefone / WhatsApp", value=nc_data["tel"])
+        cad_contato = col_nc4.text_input("Pessoa de Contato", value=nc_data["contato"])
+        
+        col_nc5, col_nc6 = st.columns([2, 1])
+        cad_end = col_nc5.text_input("Endereço Completo", value=nc_data["end"])
+        cad_bairro = col_nc6.text_input("Bairro", value=nc_data["bairro"])
+        
+        col_nc7, col_nc8 = st.columns(2)
+        uf_init = nc_data["uf"] if nc_data["uf"] in LISTA_UFS else "DF"
+        cad_uf = col_nc7.selectbox("UF *", LISTA_UFS, index=LISTA_UFS.index(uf_init), key="cad_cli_uf_sel")
+        
+        cidades_uf_cad = buscar_cidades_por_uf(cad_uf)
+        cid_init = nc_data["cidade"] if nc_data["cidade"] in cidades_uf_cad else (cidades_uf_cad[0] if cidades_uf_cad else "BRASÍLIA")
+        cad_cid = col_nc8.selectbox("Cidade *", cidades_uf_cad, index=cidades_uf_cad.index(cid_init) if cid_init in cidades_uf_cad else 0, key="cad_cli_cid_sel")
+        
+        btn_salvar_novo_cli = st.form_submit_button("CADASTRAR CLIENTE NA BASE")
+        
+        if btn_salvar_novo_cli:
+            if cad_nome:
+                cursor.execute("""
+                    INSERT INTO clientes (nome, cpf_cnpj, telefone, contato, endereco, bairro, cidade, uf)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (cad_nome, cad_cpf, cad_tel, cad_contato, cad_end, cad_bairro, cad_cid, cad_uf))
                 conn.commit()
-                st.success("Cliente removido com sucesso.")
+                st.session_state["novo_cli_data"] = {"nome": "", "cpf_cnpj": "", "tel": "", "contato": "", "end": "", "bairro": "", "cidade": "BRASÍLIA", "uf": "DF"}
+                st.success(f"Cliente '{cad_nome}' cadastrado com sucesso!")
                 st.rerun()
+            else:
+                st.error("Informe ao menos o Nome / Razão Social do cliente.")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.subheader("Clientes Cadastrados")
+    # --- SESSÃO 2: EDITAR OU EXCLUIR CLIENTE ---
+    cursor.execute("SELECT id_cliente, nome, cpf_cnpj, telefone, contato, endereco, bairro, cidade, uf FROM clientes ORDER BY nome ASC")
+    todos_clientes = cursor.fetchall()
+    
+    if todos_clientes:
+        opcoes_edicao_cli = ["-- Selecione um Cliente para Editar/Excluir --"] + [f"ID {c[0]} - {c[1]} | {c[2] or 'Sem CPF/CNPJ'}" for c in todos_clientes]
+        
+        st.markdown('<div class="section-card">', unsafe_allow_html=True)
+        st.subheader("Editar / Excluir Cliente Existente")
+        cli_edit_sel = st.selectbox("Buscar Cliente Cadastrado:", opcoes_edicao_cli, key="select_cli_edit")
+        
+        if cli_edit_sel != "-- Selecione um Cliente para Editar/Excluir --":
+            idx_c = opcoes_edicao_cli.index(cli_edit_sel) - 1
+            d_edit = todos_clientes[idx_c]
+            
+            with st.form("form_edit_cliente"):
+                col_ec1, col_ec2 = st.columns(2)
+                edit_nome = col_ec1.text_input("Nome / Razão Social *", value=d_edit[1] or "")
+                edit_cpf = col_ec2.text_input("CPF / CNPJ", value=d_edit[2] or "")
+                
+                col_ec3, col_ec4 = st.columns(2)
+                edit_tel = col_ec3.text_input("Telefone / WhatsApp", value=d_edit[3] or "")
+                edit_contato = col_ec4.text_input("Pessoa de Contato", value=d_edit[4] or "")
+                
+                col_ec5, col_ec6 = st.columns([2, 1])
+                edit_end = col_ec5.text_input("Endereço Completo", value=d_edit[5] or "")
+                edit_bairro = col_ec6.text_input("Bairro", value=d_edit[6] or "")
+                
+                col_ec7, col_ec8 = st.columns(2)
+                uf_atual = d_edit[8] if d_edit[8] in LISTA_UFS else "DF"
+                edit_uf = col_ec7.selectbox("UF", LISTA_UFS, index=LISTA_UFS.index(uf_atual), key="edit_cli_uf_sel")
+                
+                cidades_uf_edit = buscar_cidades_por_uf(edit_uf)
+                cid_atual = d_edit[7] if d_edit[7] in cidades_uf_edit else (cidades_uf_edit[0] if cidades_uf_edit else "BRASÍLIA")
+                edit_cid = col_ec8.selectbox("Cidade", cidades_uf_edit, index=cidades_uf_edit.index(cid_atual) if cid_atual in cidades_uf_edit else 0, key="edit_cli_cid_sel")
+                
+                col_btn_edit1, col_btn_edit2 = st.columns(2)
+                btn_salvar_cli = col_btn_edit1.form_submit_button("Salvar Alterações do Cliente")
+                btn_deletar_cli = col_btn_edit2.form_submit_button("Excluir Cliente")
+                
+                if btn_salvar_cli:
+                    if edit_nome:
+                        cursor.execute("""
+                            UPDATE clientes SET nome=?, cpf_cnpj=?, telefone=?, contato=?, endereco=?, bairro=?, cidade=?, uf=?
+                            WHERE id_cliente=?
+                        """, (edit_nome, edit_cpf, edit_tel, edit_contato, edit_end, edit_bairro, edit_cid, edit_uf, d_edit[0]))
+                        conn.commit()
+                        st.success("Dados do cliente atualizados com sucesso.")
+                        st.rerun()
+                    else:
+                        st.error("O campo Nome é obrigatório.")
+                        
+                if btn_deletar_cli:
+                    cursor.execute("DELETE FROM clientes WHERE id_cliente=?", (d_edit[0],))
+                    conn.commit()
+                    st.success("Cliente removido com sucesso.")
+                    st.rerun()
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.subheader("Clientes Cadastrados na Base")
     df_clientes = pd.read_sql_query("""
         SELECT id_cliente AS 'ID', nome AS 'Nome / Razão Social', cpf_cnpj AS 'CPF/CNPJ', 
                telefone AS 'Telefone', contato AS 'Contato', bairro AS 'Bairro', cidade AS 'Cidade', uf AS 'UF'
@@ -1282,7 +1372,6 @@ elif pagina == "Catálogo":
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- SESSÃO DE EDIÇÃO/EXCLUSÃO DO CATÁLOGO ---
     cursor.execute("SELECT id_item, tipo, descricao, preco_venda, estoque_qtd FROM itens_catalogo ORDER BY descricao ASC")
     itens_cat_db = cursor.fetchall()
 
