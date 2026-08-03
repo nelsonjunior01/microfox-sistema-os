@@ -152,7 +152,7 @@ with engine.begin() as conn:
 # 4. AUTENTICAÇÃO E SEGURANÇA (TEXTO DIRETO)
 # ==============================================================================
 USUARIO_CORRETO = "admin"
-SENHA_CORRETA = "admin"  # Altere aqui para a senha desejada em texto puro
+SENHA_CORRETA = "MFoxinfo@123"  # Altere aqui para a senha desejada em texto puro
 
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
