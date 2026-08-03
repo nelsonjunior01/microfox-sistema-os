@@ -149,17 +149,24 @@ with engine.begin() as conn:
     '''))
 
 # ==============================================================================
-# 4. AUTENTICAÇÃO E SEGURANÇA (COM ST.SECRETS E CRIPTOGRAFIA SHA-256)
+# 4. AUTENTICAÇÃO E SEGURANÇA (COM ST.SECRETS E HASH SHA-256)
 # ==============================================================================
 
-# Busca credenciais das variáveis seguras do ambiente (Streamlit Secrets)
-USUARIO_CORRETO = st.secrets.get("auth", {}).get("username", "admin")
-HASH_SENHA_CORRETA = st.secrets.get("auth", {}).get("password_hash", "363bfb0a6da9e17bca821869faafcaeeeaae24749fb2aa4a8f936bd501ca1efd")
+# Recupera credenciais do st.secrets com fallbacks de segurança
+try:
+    USUARIO_CORRETO = st.secrets["auth"]["username"].strip().lower()
+    HASH_SENHA_CORRETA = st.secrets["auth"]["password_hash"].strip()
+except Exception:
+    # Caso o secrets ainda não tenha sido carregado ou configurado
+    USUARIO_CORRETO = "admin"
+    HASH_SENHA_CORRETA = "363bfb0a6da9e17bca821869faafcaeeeaae24749fb2aa4a8f936bd501ca1efd"
 
 def verificar_senha(senha_digitada, hash_alvo):
-    """Compara a senha digitada em hash SHA-256 de forma segura contra tempo de execução"""
-    hash_digitado = hashlib.sha256(senha_digitada.encode()).hexdigest()
-    return hmac.compare_digest(hash_digitado, hash_alvo)
+    """Gera o hash da senha digitada e compara de forma segura."""
+    if not senha_digitada:
+        return False
+    hash_digitado = hashlib.sha256(senha_digitada.strip().encode('utf-8')).hexdigest()
+    return hmac.compare_digest(hash_digitado.lower(), hash_alvo.lower())
 
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
@@ -179,13 +186,13 @@ if not st.session_state["autenticado"]:
         st.markdown("<br>", unsafe_allow_html=True)
         
         with st.form("form_login"):
-            usuario = st.text_input("Usuário de Acesso", placeholder="Digite seu usuário")
-            senha = st.text_input("Senha de Acesso", type="password", placeholder="••••••••")
+            usuario_input = st.text_input("Usuário de Acesso", placeholder="Digite seu usuário").strip().lower()
+            senha_input = st.text_input("Senha de Acesso", type="password", placeholder="••••••••")
             
             btn_login = st.form_submit_button("🔒 ACESSAR SISTEMA", use_container_width=True)
             
             if btn_login:
-                if usuario == USUARIO_CORRETO and verificar_senha(senha, HASH_SENHA_CORRETA):
+                if usuario_input == USUARIO_CORRETO and verificar_senha(senha_input, HASH_SENHA_CORRETA):
                     st.session_state["autenticado"] = True
                     st.success("Autenticado com sucesso!")
                     st.rerun()
