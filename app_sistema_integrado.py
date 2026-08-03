@@ -149,26 +149,42 @@ with engine.begin() as conn:
     '''))
 
 # ==============================================================================
-# 4. AUTENTICAÇÃO E SEGURANÇA (DIAGNÓSTICO AUTOMÁTICO E HASH SHA-256)
+# 4. AUTENTICAÇÃO E SEGURANÇA (SEGURA VIA ST.SECRETS)
 # ==============================================================================
 
-# Tentativa de leitura do Secrets com Fallback Seguro
+# Busca credenciais do Streamlit Secrets (com fallback local seguro)
 try:
-    USUARIO_CORRETO = st.secrets["auth"]["username"].strip().lower()
-    HASH_SENHA_CORRETA = st.secrets["auth"]["password_hash"].strip().lower()
-    origem_credencial = "Secrets do Streamlit Cloud"
+    USUARIO_CORRETO = str(st.secrets["auth"]["username"]).strip()
+    
+    # Verifica se o Secrets possui 'password' ou 'password_hash'
+    if "password" in st.secrets["auth"]:
+        SENHA_CORRETA = str(st.secrets["auth"]["password"]).strip()
+        MODO_AUTENTICACAO = "direta"
+    else:
+        HASH_SENHA_CORRETA = str(st.secrets["auth"]["password_hash"]).strip().lower()
+        MODO_AUTENTICACAO = "hash"
 except Exception:
+    # Fallback seguro caso os Secrets não estejam configurados no ambiente
     USUARIO_CORRETO = "admin"
-    HASH_SENHA_CORRETA = "363bfb0a6da9e17bca821869faafcaeeeaae24749fb2aa4a8f936bd501ca1efd"
-    origem_credencial = "Código Nativo (Fallback)"
+    SENHA_CORRETA = "MFoxinfo@123"
+    MODO_AUTENTICACAO = "direta"
 
-def verificar_senha(senha_digitada, hash_alvo):
-    """Gera o hash SHA-256 da senha informada sem alterar caracteres especiais."""
-    if not senha_digitada:
+def validar_credenciais(usuario_digitado, senha_digitada):
+    """Valida o usuário e a senha sem vulnerabilidade a timing attacks."""
+    if not usuario_digitado or not senha_digitada:
         return False
-    # Aplica hash SHA-256 direto na string informada
-    hash_digitado = hashlib.sha256(senha_digitada.strip().encode('utf-8')).hexdigest()
-    return hmac.compare_digest(hash_digitado.lower(), hash_alvo.lower())
+    
+    # Valida nome de usuário
+    usuario_valido = hmac.compare_digest(usuario_digitado.strip().lower(), USUARIO_CORRETO.lower())
+    
+    # Valida senha de acordo com a configuração
+    if MODO_AUTENTICACAO == "direta":
+        senha_valida = hmac.compare_digest(senha_digitada.strip(), SENHA_CORRETA)
+    else:
+        hash_digitado = hashlib.sha256(senha_digitada.strip().encode('utf-8')).hexdigest().lower()
+        senha_valida = hmac.compare_digest(hash_digitado, HASH_SENHA_CORRETA)
+        
+    return usuario_valido and senha_valida
 
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
@@ -194,27 +210,12 @@ if not st.session_state["autenticado"]:
             btn_login = st.form_submit_button("🔒 ACESSAR SISTEMA", use_container_width=True)
             
             if btn_login:
-                usr_limpo = usuario_input.strip().lower()
-                
-                if usr_limpo == USUARIO_CORRETO and verificar_senha(senha_input, HASH_SENHA_CORRETA):
+                if validar_credenciais(usuario_input, senha_input):
                     st.session_state["autenticado"] = True
                     st.success("Autenticado com sucesso!")
                     st.rerun()
                 else:
                     st.error("⚠️ Usuário ou senha incorretos.")
-                    
-                    # Painel de ajuda para identificar o motivo da falha
-                    with st.expander("🛠️ Detalhes do Diagnóstico de Login", expanded=True):
-                        hash_digitado_teste = hashlib.sha256(senha_input.strip().encode('utf-8')).hexdigest()
-                        st.write(f"• **Origem das Credenciais:** {origem_credencial}")
-                        st.write(f"• **Usuário Esperado:** `{USUARIO_CORRETO}` | **Usuário Digitado:** `{usr_limpo}`")
-                        st.write(f"• **Hash Esperado:** `{HASH_SENHA_CORRETA[:10]}...{HASH_SENHA_CORRETA[-5:]}`")
-                        st.write(f"• **Hash Gerado da Senha Digitada:** `{hash_digitado_teste[:10]}...{hash_digitado_teste[-5:]}`")
-                        
-                        if usr_limpo != USUARIO_CORRETO:
-                            st.warning("👉 O usuário digitado não coincide com o usuário esperado.")
-                        elif hash_digitado_teste.lower() != HASH_SENHA_CORRETA.lower():
-                            st.warning("👉 A senha digitada gerou um Hash diferente do cadastrado.")
     st.stop()
 
 # ==============================================================================
