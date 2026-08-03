@@ -149,13 +149,10 @@ with engine.begin() as conn:
     '''))
 
 # ==============================================================================
-# 4. AUTENTICAÇÃO E SEGURANÇA
+# 4. AUTENTICAÇÃO E SEGURANÇA (TEXTO DIRETO)
 # ==============================================================================
 USUARIO_CORRETO = "admin"
-HASH_SENHA_CORRETA = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918" # admin123 por padrão
-
-def verificar_senha(senha_digitada, hash_alvo):
-    return hashlib.sha256(senha_digitada.encode()).hexdigest() == hash_alvo
+SENHA_CORRETA = "admin"  # Altere aqui para a senha desejada em texto puro
 
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
@@ -177,7 +174,7 @@ if not st.session_state["autenticado"]:
             usuario = st.text_input("Usuário de Acesso")
             senha = st.text_input("Senha", type="password")
             if st.form_submit_button("ACESSAR SISTEMA", use_container_width=True):
-                if usuario == USUARIO_CORRETO and verificar_senha(senha, HASH_SENHA_CORRETA):
+                if usuario == USUARIO_CORRETO and senha == SENHA_CORRETA:
                     st.session_state["autenticado"] = True
                     st.rerun()
                 else:
