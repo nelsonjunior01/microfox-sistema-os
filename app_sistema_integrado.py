@@ -149,22 +149,24 @@ with engine.begin() as conn:
     '''))
 
 # ==============================================================================
-# 4. AUTENTICAÇÃO E SEGURANÇA (COM ST.SECRETS E HASH SHA-256)
+# 4. AUTENTICAÇÃO E SEGURANÇA (DIAGNÓSTICO AUTOMÁTICO E HASH SHA-256)
 # ==============================================================================
 
-# Recupera credenciais do st.secrets com fallbacks de segurança
+# Tentativa de leitura do Secrets com Fallback Seguro
 try:
     USUARIO_CORRETO = st.secrets["auth"]["username"].strip().lower()
-    HASH_SENHA_CORRETA = st.secrets["auth"]["password_hash"].strip()
+    HASH_SENHA_CORRETA = st.secrets["auth"]["password_hash"].strip().lower()
+    origem_credencial = "Secrets do Streamlit Cloud"
 except Exception:
-    # Caso o secrets ainda não tenha sido carregado ou configurado
     USUARIO_CORRETO = "admin"
     HASH_SENHA_CORRETA = "363bfb0a6da9e17bca821869faafcaeeeaae24749fb2aa4a8f936bd501ca1efd"
+    origem_credencial = "Código Nativo (Fallback)"
 
 def verificar_senha(senha_digitada, hash_alvo):
-    """Gera o hash da senha digitada e compara de forma segura."""
+    """Gera o hash SHA-256 da senha informada sem alterar caracteres especiais."""
     if not senha_digitada:
         return False
+    # Aplica hash SHA-256 direto na string informada
     hash_digitado = hashlib.sha256(senha_digitada.strip().encode('utf-8')).hexdigest()
     return hmac.compare_digest(hash_digitado.lower(), hash_alvo.lower())
 
@@ -186,18 +188,33 @@ if not st.session_state["autenticado"]:
         st.markdown("<br>", unsafe_allow_html=True)
         
         with st.form("form_login"):
-            usuario_input = st.text_input("Usuário de Acesso", placeholder="Digite seu usuário").strip().lower()
+            usuario_input = st.text_input("Usuário de Acesso", placeholder="Ex: admin")
             senha_input = st.text_input("Senha de Acesso", type="password", placeholder="••••••••")
             
             btn_login = st.form_submit_button("🔒 ACESSAR SISTEMA", use_container_width=True)
             
             if btn_login:
-                if usuario_input == USUARIO_CORRETO and verificar_senha(senha_input, HASH_SENHA_CORRETA):
+                usr_limpo = usuario_input.strip().lower()
+                
+                if usr_limpo == USUARIO_CORRETO and verificar_senha(senha_input, HASH_SENHA_CORRETA):
                     st.session_state["autenticado"] = True
                     st.success("Autenticado com sucesso!")
                     st.rerun()
                 else:
                     st.error("⚠️ Usuário ou senha incorretos.")
+                    
+                    # Painel de ajuda para identificar o motivo da falha
+                    with st.expander("🛠️ Detalhes do Diagnóstico de Login", expanded=True):
+                        hash_digitado_teste = hashlib.sha256(senha_input.strip().encode('utf-8')).hexdigest()
+                        st.write(f"• **Origem das Credenciais:** {origem_credencial}")
+                        st.write(f"• **Usuário Esperado:** `{USUARIO_CORRETO}` | **Usuário Digitado:** `{usr_limpo}`")
+                        st.write(f"• **Hash Esperado:** `{HASH_SENHA_CORRETA[:10]}...{HASH_SENHA_CORRETA[-5:]}`")
+                        st.write(f"• **Hash Gerado da Senha Digitada:** `{hash_digitado_teste[:10]}...{hash_digitado_teste[-5:]}`")
+                        
+                        if usr_limpo != USUARIO_CORRETO:
+                            st.warning("👉 O usuário digitado não coincide com o usuário esperado.")
+                        elif hash_digitado_teste.lower() != HASH_SENHA_CORRETA.lower():
+                            st.warning("👉 A senha digitada gerou um Hash diferente do cadastrado.")
     st.stop()
 
 # ==============================================================================
