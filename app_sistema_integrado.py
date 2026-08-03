@@ -10,20 +10,50 @@ import hashlib
 import hmac
 
 # ==============================================================================
-# 1. CONFIGURAÇÃO DA PÁGINA WEB
+# 1. CONFIGURAÇÃO DA PÁGINA WEB & CARREGAMENTO ROBUSTO DA LOGO
 # ==============================================================================
 diretorio_atual = os.path.dirname(os.path.abspath(__file__))
-candidatos_logo = ["logo.png", "logo.jpg", "logo.jpeg", "LOGO.PNG", "LOGO.JPG"]
+extensoes_validas = ('.png', '.jpg', '.jpeg', '.webp', '.svg')
 caminho_logo_encontrado = None
 
-for nome_img in candidatos_logo:
-    caminho_completo = os.path.join(diretorio_atual, nome_img)
-    if os.path.exists(caminho_completo):
-        caminho_logo_encontrado = caminho_completo
+# 1. Busca recursiva no repositório por qualquer arquivo com 'logo' no nome
+for raiz, diretorios, arquivos in os.walk(diretorio_atual):
+    for arquivo in arquivos:
+        nome_lower = arquivo.lower()
+        if 'logo' in nome_lower and nome_lower.endswith(extensoes_validas):
+            caminho_logo_encontrado = os.path.join(raiz, arquivo)
+            break
+    if caminho_logo_encontrado:
         break
+
+# Tratamento base64 / URL para exibição do elemento HTML
+src_data = None
+
+if caminho_logo_encontrado and os.path.exists(caminho_logo_encontrado):
+    try:
+        with open(caminho_logo_encontrado, "rb") as image_file:
+            logo_b64 = base64.b64encode(image_file.read()).decode()
+            ext = os.path.splitext(caminho_logo_encontrado)[1].replace('.', '').lower()
+            if ext == 'svg':
+                ext = 'svg+xml'
+            src_data = f"data:image/{ext};base64,{logo_b64}"
+    except Exception:
+        src_data = None
+
+# URL de fallback caso a imagem física não seja encontrada no repositório
+# (Caso queira, você pode substituir o link abaixo pelo link exato da sua imagem)
+if not src_data:
+    src_data = "https://cdn-icons-png.flaticon.com/512/3659/3659898.png"
+
+# HTMLs pré-formatados da Logo
+logo_html = f'<img src="{src_data}" style="max-height: 65px; max-width: 160px; margin-right: 15px;"/>'
+logo_banner_html = f'<img src="{src_data}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #38bdf8; margin-bottom: 10px;"/>'
+logo_login_html = f'<img src="{src_data}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 2px solid #38bdf8; margin-bottom: 15px;"/>'
+watermark_html = f'<img src="{src_data}" class="watermark"/>'
 
 st.set_page_config(
     page_title="Micro Fox Soluções em TI - Sistema Integrado de Gestão", 
+    page_icon="🛠️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -60,21 +90,6 @@ def validar_credenciais(usuario_digitado, senha_digitada):
 
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
-
-# ==============================================================================
-# 3. TRATAMENTO HTML E EMBED DA LOGO
-# ==============================================================================
-logo_html, logo_banner_html, watermark_html, logo_login_html = "", "", "", ""
-
-if caminho_logo_encontrado:
-    with open(caminho_logo_encontrado, "rb") as image_file:
-        logo_b64 = base64.b64encode(image_file.read()).decode()
-        src_data = f"data:image/png;base64,{logo_b64}"
-        
-        logo_html = f'<img src="{src_data}" style="max-height: 65px; max-width: 160px; margin-right: 15px;"/>'
-        logo_banner_html = f'<img src="{src_data}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #38bdf8; margin-bottom: 10px;"/>'
-        logo_login_html = f'<img src="{src_data}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 2px solid #38bdf8; margin-bottom: 15px;"/>'
-        watermark_html = f'<img src="{src_data}" class="watermark"/>'
 
 # --- TEXTOS PADRÃO ---
 TEXTO_GARANTIA_ORCAMENTO = """GARANTIA DE EQUIPAMENTOS E SERVIÇOS
@@ -338,7 +353,6 @@ if st.sidebar.button("Encerrar Sessão", use_container_width=True):
 
 # --- DASHBOARD ---
 if menu_principal == "Painel de Controle (Dashboard)":
-    # Banner com a Logo centralizada no topo do Painel
     banner_centralizado_html = (
         '<div class="hero-banner">'
         f'{logo_banner_html}'
