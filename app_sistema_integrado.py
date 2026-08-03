@@ -159,13 +159,14 @@ st.markdown("""
         color: #ffedd5 !important;
         font-weight: 700 !important;
         border-radius: 10px !important;
-        padding: 10px 16px !important;
+        padding: 10px 8px !important;
         border: 1px solid rgba(251, 146, 60, 0.5) !important;
         backdrop-filter: blur(8px) !important;
         box-shadow: 0 4px 15px rgba(249, 115, 22, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
         text-transform: uppercase;
-        font-size: 11px;
-        letter-spacing: 0.5px;
+        font-size: 10.5px;
+        letter-spacing: 0.3px;
+        white-space: nowrap !important;
         transition: all 0.3s ease-in-out !important;
         width: 100% !important;
     }
@@ -363,7 +364,7 @@ if st.sidebar.button("Encerrar Sessão", use_container_width=True):
     st.rerun()
 
 # ==============================================================================
-# HERO BANNER E MENU DE NAVEGAÇÃO EM BOTÕES HORIZONTAIS
+# HERO BANNER E MENU DE NAVEGAÇÃO EM BOTÕES HORIZONTAIS (LARGURAS OTIMIZADAS)
 # ==============================================================================
 banner_centralizado_html = (
     '<div class="hero-banner">'
@@ -374,8 +375,8 @@ banner_centralizado_html = (
 )
 st.markdown(banner_centralizado_html, unsafe_allow_html=True)
 
-# BARRA DE BOTÕES DE MENU HORIZONTAL
-c_nav1, c_nav2, c_nav3, c_nav4, c_nav5, c_nav6, c_nav7 = st.columns(7)
+# BARRA DE BOTÕES COM LARGURAS AJUSTADAS PARA "CONSULTAR ORÇAMENTO" FICAR EM 1 LINHA
+c_nav1, c_nav2, c_nav3, c_nav4, c_nav5, c_nav6, c_nav7 = st.columns([1, 1, 1.1, 1.1, 1.35, 1, 1])
 
 if c_nav1.button("Painel Geral", key="btn_nav_dash"):
     st.session_state["pagina_ativa"] = "Painel Geral"
