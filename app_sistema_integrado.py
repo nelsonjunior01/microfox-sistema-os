@@ -154,7 +154,7 @@ with engine.begin() as conn:
 
 # Busca credenciais das variáveis seguras do ambiente (Streamlit Secrets)
 USUARIO_CORRETO = st.secrets.get("auth", {}).get("username", "admin")
-HASH_SENHA_CORRETA = st.secrets.get("auth", {}).get("password_hash", "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918")
+HASH_SENHA_CORRETA = st.secrets.get("auth", {}).get("password_hash", "363bfb0a6da9e17bca821869faafcaeeeaae24749fb2aa4a8f936bd501ca1efd")
 
 def verificar_senha(senha_digitada, hash_alvo):
     """Compara a senha digitada em hash SHA-256 de forma segura contra tempo de execução"""
