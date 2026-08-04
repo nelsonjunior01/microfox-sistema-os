@@ -1278,7 +1278,7 @@ elif pagina == "Base Clientes":
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- SESSÃO 2: EDITAR OU EXCLUIR CLIENTE ---
+   # --- SESSÃO 2: EDITAR OU EXCLUIR CLIENTE EXISTENTE ---
     cursor.execute("SELECT id_cliente, nome, cpf_cnpj, telefone, contato, endereco, bairro, cidade, uf FROM clientes ORDER BY nome ASC")
     todos_clientes = cursor.fetchall()
     
@@ -1330,30 +1330,16 @@ elif pagina == "Base Clientes":
                     else:
                         st.error("O campo Nome é obrigatório.")
                         
-              col_btn_edit1, col_btn_edit2 = st.columns(2)
-            btn_salvar_cli = col_btn_edit1.form_submit_button("Salvar Alterações do Cliente")
-            btn_deletar_cli = col_btn_edit2.form_submit_button("Excluir Cliente")
-            
-            if btn_salvar_cli:
-                if edit_nome:
-                    cursor.execute("""
-                        UPDATE clientes SET nome=?, cpf_cnpj=?, telefone=?, contato=?, endereco=?, bairro=?, cidade=?, uf=?
-                        WHERE id_cliente=?
-                    """, (edit_nome, edit_cpf, edit_tel, edit_contato, edit_end, edit_bairro, edit_cid, edit_uf, d_edit[0]))
-                    conn.commit()
-                    st.success("Dados do cliente atualizados com sucesso.")
-                    st.rerun()
-                else:
-                    st.error("O campo Nome é obrigatório.")
-                    
-            if btn_deletar_cli:
-                try:
-                    cursor.execute("DELETE FROM clientes WHERE id_cliente=?", (d_edit[0],))
-                    conn.commit()
-                    st.success("Cliente removido com sucesso.")
-                    st.rerun()
-                except sqlite3.IntegrityError:
-                    st.error("Não é possível excluir este cliente pois existem Ordens de Serviço ou Orçamentos vinculados a ele.")
+                if btn_deletar_cli:
+                    try:
+                        cursor.execute("DELETE FROM clientes WHERE id_cliente=?", (d_edit[0],))
+                        conn.commit()
+                        st.success("Cliente removido com sucesso.")
+                        st.rerun()
+                    except sqlite3.IntegrityError:
+                        st.error("Não é possível excluir este cliente pois existem Ordens de Serviço ou Orçamentos vinculados a ele.")
+
+        st.markdown('</div>', unsafe_allow_html=True)
 # --- CATÁLOGO DE PRODUTOS E SERVIÇOS (COM EDIÇÃO E EXCLUSÃO) ---
 elif pagina == "Catálogo":
     st.caption("Cadastre e edite produtos e serviços para reutilização ágil")
