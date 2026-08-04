@@ -77,13 +77,9 @@ logo_login_html = f'<img src="{src_data}" style="width: 120px; height: 120px; bo
 watermark_html = f'<img src="{src_data}" class="watermark"/>'
 
 # ==============================================================================
-# 2. AUTENTICAÇÃO E SEGURANÇA (UTILIZANDO HASH SHA-256 E ST.SECRETS)
+# 2. AUTENTICAÇÃO E SEGURANÇA (ST.SECRETS + HASH SHA-256)
 # ==============================================================================
-# Para gerar uma nova senha em Hash SHA-256 via terminal/python:
-# import hashlib; print(hashlib.sha256("SuaSenhaAqui".encode()).hexdigest())
-
-# Hash SHA-256 do valor padrão (não armazenamos a senha pura no código)
-# Exemplo abaixo corresponde ao Hash SHA-256 seguro definido nas secrets
+# HASH SHA-256 padrão caso não haja secrets configuradas
 HASH_PADRAO_SISTEMA = "6a73c9f2b874313fdbb6214ec0e2f11c7fae1d6d33f7c22956294726b216503b" 
 
 try:
@@ -91,7 +87,6 @@ try:
     if "password_hash" in st.secrets["auth"]:
         HASH_SENHA_CORRETA = str(st.secrets["auth"]["password_hash"]).strip().lower()
     elif "password" in st.secrets["auth"]:
-        # Converte em runtime para evitar comparação em texto limpo
         SENHA_RAW = str(st.secrets["auth"]["password"]).strip()
         HASH_SENHA_CORRETA = hashlib.sha256(SENHA_RAW.encode('utf-8')).hexdigest().lower()
     else:
@@ -104,23 +99,26 @@ def validar_credenciais(usuario_digitado, senha_digitada):
     if not usuario_digitado or not senha_digitada:
         return False
     
-    # Validação do usuário em tempo constante contra Side-Channel Attacks
     usuario_valido = hmac.compare_digest(usuario_digitado.strip().lower(), USUARIO_CORRETO)
-    
-    # Hash da senha digitada pelo usuário no formulário de login
     hash_digitado = hashlib.sha256(senha_digitada.strip().encode('utf-8')).hexdigest().lower()
-    
-    # Comparação segura dos Hashes com hmac.compare_digest
     senha_valida = hmac.compare_digest(hash_digitado, HASH_SENHA_CORRETA)
         
     return usuario_valido and senha_valida
+
+# --- INICIALIZAÇÃO OBRIGATÓRIA DAS CHAVES DE SESSÃO (DEVE VIR ANTES DA TELA DE LOGIN) ---
+if "autenticado" not in st.session_state:
+    st.session_state["autenticado"] = False
+
+if "pagina_ativa" not in st.session_state:
+    st.session_state["pagina_ativa"] = "Painel Geral"
+
 # --- TEXTOS PADRÃO ---
 TEXTO_GARANTIA_ORCAMENTO = """GARANTIA DE EQUIPAMENTOS E SERVIÇOS
 Forneceremos 01 (um) ano de garantia dos produtos e 03 (três) meses de garantia dos nossos serviços e consultoria gratuita pelo mesmo período.
 Nos preços cotados não estão incluídos serviços de desobstrução e/ou substituição de tubulação que eventualmente se façam necessários, bem como obras civis associadas.
 Qualquer outro tipo de serviço que seja necessário será informado com antecedência para que seja tomada as providencias cabíveis, será cobrado a taxa de 250,00 adicional."""
 
-# --- ESTILIZAÇÃO CSS CUSTOMIZADA (LARANJA CLARO ESPELHADO / GLASSMORPHISM) ---
+# --- ESTILIZAÇÃO CSS CUSTOMIZADA ---
 st.markdown("""
 <style>
     .stApp { background-color: #0f172a !important; color: #f8fafc !important; }
@@ -155,7 +153,6 @@ st.markdown("""
     .hero-title { font-size: 26px; font-weight: 700; color: #f97316; margin-top: 10px; text-transform: uppercase; letter-spacing: 1px; }
     .hero-subtitle { font-size: 14px; color: #94a3b8; margin-top: 4px; }
 
-    /* ESTILO DOS BOTÕES DE MENU LARANJA CLARO ESPELHADO */
     div.stButton > button {
         background: linear-gradient(135deg, rgba(251, 146, 60, 0.2) 0%, rgba(249, 115, 22, 0.4) 100%) !important;
         color: #ffedd5 !important;
@@ -181,39 +178,6 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
-def consultar_cnpj_api(cnpj):
-    cnpj_limpo = re.sub(r'\D', '', cnpj)
-    if len(cnpj_limpo) == 14:
-        try:
-            url = f"https://brasilapi.com.br/api/cnpj/v1/{cnpj_limpo}"
-            res = requests.get(url, timeout=5)
-            if res.status_code == 200:
-                dados = res.json()
-                return {
-                    "nome": dados.get("razao_social") or dados.get("nome_fantasia"),
-                    "endereco": f"{dados.get('descricao_tipo_de_logradouro', '')} {dados.get('logradouro', '')}, {dados.get('numero', '')} {dados.get('complemento', '')}".strip(),
-                    "bairro": dados.get("bairro", ""),
-                    "cidade": (dados.get("municipio") or "BRASÍLIA").upper(),
-                    "uf": (dados.get("uf") or "DF").upper(),
-                    "telefone": dados.get("ddd_telefone_1", "")
-                }
-        except Exception:
-            pass
-    return None
-
-LISTA_UFS = ["DF", "AC", "AL", "AM", "AP", "BA", "CE", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"]
-
-@st.cache_data(ttl=86400)
-def buscar_cidades_por_uf(sigla_uf):
-    try:
-        url = f"https://servicodados.ibge.gov.br/api/v1/localidades/estados/{sigla_uf}/municipios?orderBy=nome"
-        res = requests.get(url, timeout=5).json()
-        return [c["nome"] for c in res]
-    except Exception:
-        if sigla_uf == "DF":
-            return ["BRASÍLIA", "SAMAMBAIA", "TAGUATINGA", "CEILÂNDIA", "ÁGUAS CLARAS", "GAMA", "SOBRADINHO"]
-        return ["Capital / Centro"]
 
 # ==============================================================================
 # TELA DE AUTENTICAÇÃO / LOGIN
