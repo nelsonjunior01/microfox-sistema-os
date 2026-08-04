@@ -1048,10 +1048,11 @@ elif pagina == "Criar Orçamento":
             st.session_state["itens_orcamento"] = []
             st.success(f"Proposta Comercial Nº {numero_orc} salva com sucesso.")
 
-# --- CONSULTAR ORÇAMENTO ---
+# --- CONSULTAR / EDITAR ORÇAMENTO ---
 elif pagina == "Consultar Orçamento":
-    st.caption("Consulte, imprima ou exclua orçamentos comerciais em PDF")
+    st.caption("Consulte, imprima, edite ou exclua orçamentos comerciais")
 
+    # Lista os orçamentos existentes
     df_busca = pd.read_sql_query("""
         SELECT id_orcamento AS 'ID', numero_orcamento AS 'Nº Orçamento', cliente_nome AS 'Cliente', 
                data_emissao AS 'Emissão', data_validade AS 'Validade', val_total AS 'Total (R$)', status AS 'Status'
@@ -1060,13 +1061,15 @@ elif pagina == "Consultar Orçamento":
     st.dataframe(df_busca, use_container_width=True)
 
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    col_s1, col_s2, col_s3 = st.columns([2, 1, 1])
+    col_s1, col_s2, col_s3, col_s4 = st.columns([2, 1, 1, 1])
     id_orc_sel = col_s1.number_input("Digite o ID do Orçamento:", min_value=1, step=1, key="orc_id_cons_in")
     
-    btn_ver_orc = col_s2.button("Visualizar Orçamento", key="btn_orc_view")
-    btn_del_orc = col_s3.button("Excluir Orçamento", key="btn_orc_del")
+    btn_ver_orc = col_s2.button("Visualizar (PDF)", key="btn_orc_view")
+    btn_edit_orc = col_s3.button("Editar Orçamento", key="btn_orc_edit")
+    btn_del_orc = col_s4.button("Excluir Orçamento", key="btn_orc_del")
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # LÓGICA DE EXCLUSÃO
     if btn_del_orc:
         cursor.execute("SELECT numero_orcamento FROM orcamentos WHERE id_orcamento = ?", (id_orc_sel,))
         orc_existente = cursor.fetchone()
@@ -1079,7 +1082,80 @@ elif pagina == "Consultar Orçamento":
         else:
             st.error("Orçamento não encontrado para exclusão.")
 
+    # TELA DE EDIÇÃO DE ORÇAMENTO
+    if btn_edit_orc or st.session_state.get("modo_edicao_orc") == id_orc_sel:
+        st.session_state["modo_edicao_orc"] = id_orc_sel
+        cursor.execute("SELECT * FROM orcamentos WHERE id_orcamento = ?", (id_orc_sel,))
+        orc_dados = cursor.fetchone()
+
+        if orc_dados:
+            st.markdown(f"### ✏️ Editando Orçamento Nº {orc_dados[1]} (ID {id_orc_sel})")
+            
+            with st.form("form_editar_orcamento"):
+                col_e1, col_e2, col_e3 = st.columns(3)
+                novo_status = col_e1.selectbox("Status", ["Pendente", "Aprovado", "Recusado", "Cancelado"], index=["Pendente", "Aprovado", "Recusado", "Cancelado"].index(orc_dados[17]) if orc_dados[17] in ["Pendente", "Aprovado", "Recusado", "Cancelado"] else 0)
+                nova_vali = col_e2.text_input("Validade", value=orc_dados[3] or "")
+                novo_equip = col_e3.text_input("Ref. Equipamento", value=orc_dados[10] or "")
+
+                col_e4, col_e5 = st.columns(2)
+                novo_cond_pag = col_e4.text_input("Condições de Pagamento", value=orc_dados[12] or "")
+                novo_prazo = col_e5.text_input("Prazo de Entrega", value=orc_dados[13] or "")
+
+                novas_obs = st.text_area("Termos / Observações", value=orc_dados[11] or "", height=100)
+
+                col_e6, col_e7 = st.columns(2)
+                novo_desconto = col_e6.number_input("Desconto Total (R$)", value=float(orc_dados[15] or 0.0), min_value=0.0, step=10.0)
+
+                # Carrega os itens atuais do orçamento
+                cursor.execute("SELECT id_item, tipo, descricao, qtd, val_unitario FROM orcamento_itens WHERE orcamento_id = ?", (id_orc_sel,))
+                itens_atuais = cursor.fetchall()
+                
+                st.markdown("#### Itens do Orçamento")
+                novos_itens_salvar = []
+                
+                for idx, item in enumerate(itens_atuais):
+                    st.caption(f"Item #{idx+1}")
+                    ci1, ci2, ci3, ci4 = st.columns([1.5, 3, 1, 1.5])
+                    t_item = ci1.selectbox("Tipo", ["Serviço", "Produto"], index=0 if item[1] == "Serviço" else 1, key=f"edit_t_{item[0]}")
+                    d_item = ci2.text_input("Descrição", value=item[2], key=f"edit_d_{item[0]}")
+                    q_item = ci3.number_input("Qtd", value=float(item[3] or 1), min_value=0.1, step=1.0, key=f"edit_q_{item[0]}")
+                    v_item = ci4.number_input("Val. Unit. (R$)", value=float(item[4] or 0.0), min_value=0.0, step=10.0, key=f"edit_v_{item[0]}")
+                    
+                    novos_itens_salvar.append((t_item, d_item, q_item, v_item, q_item * v_item))
+
+                btn_salvar_edicao = st.form_submit_button("💾 Salvar Alterações do Orçamento", use_container_width=True)
+
+                if btn_salvar_edicao:
+                    # Recalcula totais
+                    novo_subtotal = sum(i[4] for i in novos_itens_salvar)
+                    novo_total = max(0.0, novo_subtotal - novo_desconto)
+
+                    # Atualiza a tabela principal de orçamentos
+                    cursor.execute("""
+                        UPDATE orcamentos 
+                        SET data_validade=?, equipamento_ref=?, obs=?, cond_pagamento=?, prazo_entrega=?,
+                            val_subtotal=?, val_desconto=?, val_total=?, status=?
+                        WHERE id_orcamento=?
+                    """, (nova_vali, novo_equip, novas_obs, novo_cond_pag, novo_prazo, novo_subtotal, novo_desconto, novo_total, novo_status, id_orc_sel))
+
+                    # Recria os itens atualizados
+                    cursor.execute("DELETE FROM orcamento_itens WHERE orcamento_id=?", (id_orc_sel,))
+                    for item in novos_itens_salvar:
+                        cursor.execute("""
+                            INSERT INTO orcamento_itens (orcamento_id, tipo, descricao, qtd, val_unitario, val_total_item)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        """, (id_orc_sel, item[0], item[1], item[2], item[3], item[4]))
+
+                    conn.commit()
+                    st.session_state["modo_edicao_orc"] = None
+                    st.success(f"Orçamento Nº {orc_dados[1]} atualizado com sucesso!")
+                    st.rerun()
+        else:
+            st.error("Orçamento não encontrado para edição.")
+
+    # VISUALIZAÇÃO EM PDF/HTML
     if btn_ver_orc:
+        st.session_state["modo_edicao_orc"] = None
         cursor.execute("SELECT * FROM orcamentos WHERE id_orcamento = ?", (id_orc_sel,))
         orc = cursor.fetchone()
 
@@ -1161,7 +1237,8 @@ elif pagina == "Consultar Orçamento":
                         <div style="text-align: right;">
                             <strong>Data Emissão:</strong> {orc[2]}<br>
                             <strong>Validade até:</strong> {orc[3]}<br>
-                            <strong>Ref. Equipamento:</strong> {orc[10] or 'Diversos'}
+                            <strong>Ref. Equipamento:</strong> {orc[10] or 'Diversos'}<br>
+                            <strong>Status:</strong> {orc[17] or 'Pendente'}
                         </div>
                     </div>
 
