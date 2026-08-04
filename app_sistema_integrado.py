@@ -1050,7 +1050,7 @@ elif pagina == "Criar Orçamento":
 
 # --- CONSULTAR ORÇAMENTO ---
 elif pagina == "Consultar Orçamento":
-    st.caption("Consulte e imprima orçamentos comerciais em PDF")
+    st.caption("Consulte, imprima ou exclua orçamentos comerciais em PDF")
 
     df_busca = pd.read_sql_query("""
         SELECT id_orcamento AS 'ID', numero_orcamento AS 'Nº Orçamento', cliente_nome AS 'Cliente', 
@@ -1059,10 +1059,27 @@ elif pagina == "Consultar Orçamento":
     """, conn)
     st.dataframe(df_busca, use_container_width=True)
 
-    col_s1, col_s2 = st.columns([2, 1])
-    id_orc_sel = col_s1.number_input("Digite o ID do Orçamento para visualizar:", min_value=1, step=1, key="orc_id_cons_in")
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    col_s1, col_s2, col_s3 = st.columns([2, 1, 1])
+    id_orc_sel = col_s1.number_input("Digite o ID do Orçamento:", min_value=1, step=1, key="orc_id_cons_in")
+    
+    btn_ver_orc = col_s2.button("Visualizar Orçamento", key="btn_orc_view")
+    btn_del_orc = col_s3.button("Excluir Orçamento", key="btn_orc_del")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    if col_s2.button("Visualizar Orçamento", key="btn_orc_view"):
+    if btn_del_orc:
+        cursor.execute("SELECT numero_orcamento FROM orcamentos WHERE id_orcamento = ?", (id_orc_sel,))
+        orc_existente = cursor.fetchone()
+        if orc_existente:
+            cursor.execute("DELETE FROM orcamento_itens WHERE orcamento_id = ?", (id_orc_sel,))
+            cursor.execute("DELETE FROM orcamentos WHERE id_orcamento = ?", (id_orc_sel,))
+            conn.commit()
+            st.success(f"Orçamento Nº {orc_existente[0]} (ID {id_orc_sel}) e seus itens foram excluídos com sucesso!")
+            st.rerun()
+        else:
+            st.error("Orçamento não encontrado para exclusão.")
+
+    if btn_ver_orc:
         cursor.execute("SELECT * FROM orcamentos WHERE id_orcamento = ?", (id_orc_sel,))
         orc = cursor.fetchone()
 
