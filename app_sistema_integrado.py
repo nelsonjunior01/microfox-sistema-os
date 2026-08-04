@@ -11,6 +11,42 @@ import hmac
 from PIL import Image, ImageDraw
 
 # ==============================================================================
+# DEFINIÇÃO DE CONSTANTES E FUNÇÕES AUXILIARES (DEVE FICAR NO TOPO)
+# ==============================================================================
+LISTA_UFS = ["DF", "AC", "AL", "AM", "AP", "BA", "CE", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"]
+
+@st.cache_data(ttl=86400)
+def buscar_cidades_por_uf(sigla_uf):
+    try:
+        url = f"https://servicodados.ibge.gov.br/api/v1/localidades/estados/{sigla_uf}/municipios?orderBy=nome"
+        res = requests.get(url, timeout=5).json()
+        return [c["nome"] for c in res]
+    except Exception:
+        if sigla_uf == "DF":
+            return ["BRASÍLIA", "SAMAMBAIA", "TAGUATINGA", "CEILÂNDIA", "ÁGUAS CLARAS", "GAMA", "SOBRADINHO"]
+        return ["Capital / Centro"]
+
+def consultar_cnpj_api(cnpj):
+    cnpj_limpo = re.sub(r'\D', '', cnpj)
+    if len(cnpj_limpo) == 14:
+        try:
+            url = f"https://brasilapi.com.br/api/cnpj/v1/{cnpj_limpo}"
+            res = requests.get(url, timeout=5)
+            if res.status_code == 200:
+                dados = res.json()
+                return {
+                    "nome": dados.get("razao_social") or dados.get("nome_fantasia"),
+                    "endereco": f"{dados.get('descricao_tipo_de_logradouro', '')} {dados.get('logradouro', '')}, {dados.get('numero', '')} {dados.get('complemento', '')}".strip(),
+                    "bairro": dados.get("bairro", ""),
+                    "cidade": (dados.get("municipio") or "BRASÍLIA").upper(),
+                    "uf": (dados.get("uf") or "DF").upper(),
+                    "telefone": dados.get("ddd_telefone_1", "")
+                }
+        except Exception:
+            pass
+    return None
+
+# ==============================================================================
 # 1. CARREGAMENTO DA LOGO, ARREDONDAMENTO & FAVICON DA ABA DO NAVEGADOR
 # ==============================================================================
 diretorio_atual = os.path.dirname(os.path.abspath(__file__))
