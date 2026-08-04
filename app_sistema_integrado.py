@@ -1330,14 +1330,14 @@ elif pagina == "Base Clientes":
                     else:
                         st.error("O campo Nome é obrigatório.")
                         
-                if btn_deletar_cli:
-                    cursor.execute("DELETE FROM clientes WHERE id_cliente=?", (d_edit[0],))
-                    conn.commit()
-                    st.success("Cliente removido com sucesso.")
-                    st.rerun()
-
-        st.markdown('</div>', unsafe_allow_html=True)
-
+               if btn_deletar_cli:
+    try:
+        cursor.execute("DELETE FROM clientes WHERE id_cliente=?", (d_edit[0],))
+        conn.commit()
+        st.success("Cliente removido com sucesso.")
+        st.rerun()
+    except sqlite3.IntegrityError:
+        st.error("Não é possível excluir este cliente pois existem Ordens de Serviço ou Orçamentos vinculados a ele.")
     st.subheader("Clientes Cadastrados na Base")
     df_clientes = pd.read_sql_query("""
         SELECT id_cliente AS 'ID', nome AS 'Nome / Razão Social', cpf_cnpj AS 'CPF/CNPJ', 
