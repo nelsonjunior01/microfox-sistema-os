@@ -642,15 +642,31 @@ elif pagina == "Criar O.S.":
 
 # --- CONSULTAR O.S. ---
 elif pagina == "Consultar O.S.":
-    st.caption("Consulte e imprima os comprovantes de Entrada ou Saída de O.S.")
+    st.caption("Consulte, imprima ou exclua comprovantes de Entrada ou Saída de O.S.")
     
     df = pd.read_sql_query("SELECT id_os AS 'ID', numero_os AS 'Nº OS', cliente_nome AS 'Cliente', data_abertura AS 'Abertura', val_total AS 'Total (R$)', COALESCE(tipo_documento, 'Comprovante de Saída') AS 'Tipo' FROM ordens_servico ORDER BY id_os DESC", conn)
     st.dataframe(df, use_container_width=True)
     
-    col_search1, col_search2 = st.columns([2, 1])
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    col_search1, col_search2, col_search3 = st.columns([2, 1, 1])
     id_sel = col_search1.number_input("Digite o ID da O.S. desejada:", min_value=1, step=1, key="os_id_input")
     
-    if col_search2.button("Visualizar O.S.", key="btn_os_view"):
+    btn_ver_os = col_search2.button("Visualizar O.S.", key="btn_os_view")
+    btn_del_os = col_search3.button("Excluir O.S.", key="btn_os_del")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if btn_del_os:
+        cursor.execute("SELECT numero_os FROM ordens_servico WHERE id_os = ?", (id_sel,))
+        os_existente = cursor.fetchone()
+        if os_existente:
+            cursor.execute("DELETE FROM ordens_servico WHERE id_os = ?", (id_sel,))
+            conn.commit()
+            st.success(f"Ordem de Serviço Nº {os_existente[0]} (ID {id_sel}) excluída com sucesso!")
+            st.rerun()
+        else:
+            st.error("O.S. não encontrada para exclusão.")
+    
+    if btn_ver_os:
         cursor.execute("SELECT * FROM ordens_servico WHERE id_os = ?", (id_sel,))
         d = cursor.fetchone()
         
@@ -899,7 +915,6 @@ elif pagina == "Consultar O.S.":
             st.components.v1.html(html_documento, height=950, scrolling=True)
         else:
             st.error("O.S. não encontrada.")
-
 # --- CRIAR ORÇAMENTO ---
 elif pagina == "Criar Orçamento":
     st.caption("Monte e cadastre orçamentos comerciais completos")
