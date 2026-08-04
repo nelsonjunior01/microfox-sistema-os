@@ -77,41 +77,43 @@ logo_login_html = f'<img src="{src_data}" style="width: 120px; height: 120px; bo
 watermark_html = f'<img src="{src_data}" class="watermark"/>'
 
 # ==============================================================================
-# 2. AUTENTICAÇÃO E SEGURANÇA (ST.SECRETS + FALLBACK SEGURO)
+# 2. AUTENTICAÇÃO E SEGURANÇA (UTILIZANDO HASH SHA-256 E ST.SECRETS)
 # ==============================================================================
+# Para gerar uma nova senha em Hash SHA-256 via terminal/python:
+# import hashlib; print(hashlib.sha256("SuaSenhaAqui".encode()).hexdigest())
+
+# Hash SHA-256 do valor padrão (não armazenamos a senha pura no código)
+# Exemplo abaixo corresponde ao Hash SHA-256 seguro definido nas secrets
+HASH_PADRAO_SISTEMA = "6a73c9f2b874313fdbb6214ec0e2f11c7fae1d6d33f7c22956294726b216503b" 
+
 try:
     USUARIO_CORRETO = str(st.secrets["auth"]["username"]).strip().lower()
-    if "password" in st.secrets["auth"]:
-        SENHA_CORRETA = str(st.secrets["auth"]["password"]).strip()
-        MODO_AUTENTICACAO = "direta"
-    else:
+    if "password_hash" in st.secrets["auth"]:
         HASH_SENHA_CORRETA = str(st.secrets["auth"]["password_hash"]).strip().lower()
-        MODO_AUTENTICACAO = "hash"
+    elif "password" in st.secrets["auth"]:
+        # Converte em runtime para evitar comparação em texto limpo
+        SENHA_RAW = str(st.secrets["auth"]["password"]).strip()
+        HASH_SENHA_CORRETA = hashlib.sha256(SENHA_RAW.encode('utf-8')).hexdigest().lower()
+    else:
+        HASH_SENHA_CORRETA = HASH_PADRAO_SISTEMA
 except Exception:
     USUARIO_CORRETO = "admin"
-    SENHA_CORRETA = "MFoxinfo@123"
-    MODO_AUTENTICACAO = "direta"
+    HASH_SENHA_CORRETA = HASH_PADRAO_SISTEMA
 
 def validar_credenciais(usuario_digitado, senha_digitada):
     if not usuario_digitado or not senha_digitada:
         return False
     
+    # Validação do usuário em tempo constante contra Side-Channel Attacks
     usuario_valido = hmac.compare_digest(usuario_digitado.strip().lower(), USUARIO_CORRETO)
     
-    if MODO_AUTENTICACAO == "direta":
-        senha_valida = hmac.compare_digest(senha_digitada.strip(), SENHA_CORRETA)
-    else:
-        hash_digitado = hashlib.sha256(senha_digitada.strip().encode('utf-8')).hexdigest().lower()
-        senha_valida = hmac.compare_digest(hash_digitado, HASH_SENHA_CORRETA)
+    # Hash da senha digitada pelo usuário no formulário de login
+    hash_digitado = hashlib.sha256(senha_digitada.strip().encode('utf-8')).hexdigest().lower()
+    
+    # Comparação segura dos Hashes com hmac.compare_digest
+    senha_valida = hmac.compare_digest(hash_digitado, HASH_SENHA_CORRETA)
         
     return usuario_valido and senha_valida
-
-if "autenticado" not in st.session_state:
-    st.session_state["autenticado"] = False
-
-if "pagina_ativa" not in st.session_state:
-    st.session_state["pagina_ativa"] = "Painel Geral"
-
 # --- TEXTOS PADRÃO ---
 TEXTO_GARANTIA_ORCAMENTO = """GARANTIA DE EQUIPAMENTOS E SERVIÇOS
 Forneceremos 01 (um) ano de garantia dos produtos e 03 (três) meses de garantia dos nossos serviços e consultoria gratuita pelo mesmo período.
