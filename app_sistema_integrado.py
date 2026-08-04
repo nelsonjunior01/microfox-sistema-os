@@ -408,8 +408,9 @@ if pagina == "Painel Geral":
     st.markdown("<br>", unsafe_allow_html=True)
     col_t1, col_t2 = st.columns(2)
     
+   # TRECHO ATUALIZADO (CENTRALIZADO):
     with col_t1:
-        st.subheader("Últimas Ordens de Serviço")
+        st.markdown("<h3 style='text-align: center; color: #f97316; font-size: 20px; font-weight: 700; margin-bottom: 15px;'>Últimas Ordens de Serviço</h3>", unsafe_allow_html=True)
         df_ultimas_os = pd.read_sql_query("""
             SELECT numero_os AS 'Nº OS', cliente_nome AS 'Cliente', equipamento AS 'Equipamento', val_total AS 'Total (R$)'
             FROM ordens_servico ORDER BY id_os DESC LIMIT 5
@@ -417,7 +418,7 @@ if pagina == "Painel Geral":
         st.dataframe(df_ultimas_os, use_container_width=True)
         
     with col_t2:
-        st.subheader("Últimos Orçamentos")
+        st.markdown("<h3 style='text-align: center; color: #f97316; font-size: 20px; font-weight: 700; margin-bottom: 15px;'>Últimos Orçamentos</h3>", unsafe_allow_html=True)
         df_ultimos_orc = pd.read_sql_query("""
             SELECT numero_orcamento AS 'Nº Proposta', cliente_nome AS 'Cliente', val_total AS 'Total (R$)', status AS 'Status'
             FROM orcamentos ORDER BY id_orcamento DESC LIMIT 5
