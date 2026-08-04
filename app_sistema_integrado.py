@@ -80,7 +80,7 @@ watermark_html = f'<img src="{src_data}" class="watermark"/>'
 # 2. AUTENTICAÇÃO E SEGURANÇA (ST.SECRETS + HASH SHA-256)
 # ==============================================================================
 # HASH SHA-256 padrão caso não haja secrets configuradas
-HASH_PADRAO_SISTEMA = "f77f61425dfc10a9881211476a3bf297411e687d784d60574c1abfd5b992b1f2" 
+HASH_PADRAO_SISTEMA = "699220d84e4b1ed170a6118feb4f2da83027ed70f7c45e639ae54616cdd904ca" 
 
 try:
     USUARIO_CORRETO = str(st.secrets["auth"]["username"]).strip().lower()
